@@ -79,7 +79,7 @@ static void lex_loop(lex_stream source) {
 
 	do {
 		pending = lex(source);
-		printf("%s: %s - %s", bitoa(lexeme_get_linenum(pending)),
+		printf("%s: %s - %s\n", bitoa(lexeme_get_linenum(pending)),
 				lexeme_get_typename(pending), lexeme_to_string(pending));
 	} while (lexeme_get_type(pending) != END_OF_FILE);
 }
