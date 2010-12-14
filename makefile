@@ -56,10 +56,6 @@ $(OBJDIR)/prettyprinter.o: $(SRCDIR)/prettyprinter.c $(INCLUDEDIR)/lex.h $(INCLU
  $(INCLUDEDIR)/bigint.h $(INCLUDEDIR)/bigfloat.h $(INCLUDEDIR)/prettyprinter.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/scanner.o: $(SRCDIR)/scanner.c $(INCLUDEDIR)/lex.h $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h \
- $(INCLUDEDIR)/bigfloat.h | $(OBJDIR)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
 $(OBJDIR)/lex.o: $(SRCDIR)/lex.c $(INCLUDEDIR)/lex.h $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h \
  $(INCLUDEDIR)/darray.h $(INCLUDEDIR)/bigfloat.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
