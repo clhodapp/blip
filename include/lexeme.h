@@ -53,10 +53,6 @@ typedef enum {
 
 typedef struct lexeme_t *lexeme;
 
-extern lexeme NIL_LEXEME;
-extern lexeme TRUE_LEXEME;
-extern lexeme FALSE_LEXEME;
-
 lexeme lexeme_make(lexeme_type type);
 lexeme_type lexeme_get_type(lexeme l);
 char * lexeme_get_typename(lexeme l);

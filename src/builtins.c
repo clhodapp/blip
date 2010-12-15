@@ -179,11 +179,11 @@ static void register_builtin(lexeme env, char * name, lexeme (*action)(lexeme), 
 
 static lexeme out(lexeme args) {
 	args = lexeme_get_left(args);
-	while (args != NIL_LEXEME) {
+	while (args != lexeme_make(NIL)) {
 		printf("%s", lexeme_to_string(lexeme_get_left(args)));
 		args = lexeme_get_right(args);
 	}
-	return NIL_LEXEME;
+	return lexeme_make(NIL);
 }
 
 static lexeme str_ref(lexeme args) {
@@ -201,11 +201,11 @@ static lexeme str_ref(lexeme args) {
 
 static lexeme err(lexeme args) {
 	args = lexeme_get_left(args);
-	while (args != NIL_LEXEME) {
+	while (args != lexeme_make(NIL)) {
 		fprintf(stderr, "%s", lexeme_to_string(lexeme_get_left(args)));
 		args = lexeme_get_right(args);
 	}
-	return NIL_LEXEME;
+	return lexeme_make(NIL);
 }
 
 static lexeme list(lexeme args) {
@@ -239,7 +239,7 @@ static lexeme plus(lexeme args) {
 
 	args = lexeme_get_left(args);
 
-	if (args == NIL_LEXEME) {
+	if (args == lexeme_make(NIL)) {
 		fprintf(stderr, "Error: + requires at least one argument");
 	}
 	addOp = addOps[lexeme_get_type(lexeme_get_left(args))];
@@ -248,7 +248,7 @@ static lexeme plus(lexeme args) {
 		exit(EXIT_FAILURE);
 	}
 
-	while (lexeme_get_right(args) != NIL_LEXEME) {
+	while (lexeme_get_right(args) != lexeme_make(NIL)) {
 		current = lexeme_get_left(args);
 		right = lexeme_get_right(args);
 		next = lexeme_get_left(right);
@@ -269,7 +269,7 @@ static lexeme minus(lexeme args) {
 
 	args = lexeme_get_left(args);
 
-	if (args == NIL_LEXEME) {
+	if (args == lexeme_make(NIL)) {
 		fprintf(stderr, "Error: + requires at least one argument");
 	}
 	subOp = subOps[lexeme_get_type(lexeme_get_left(args))];
@@ -278,7 +278,7 @@ static lexeme minus(lexeme args) {
 		exit(EXIT_FAILURE);
 	}
 
-	while (lexeme_get_right(args) != NIL_LEXEME) {
+	while (lexeme_get_right(args) != lexeme_make(NIL)) {
 		current = lexeme_get_left(args);
 		right = lexeme_get_right(args);
 		next = lexeme_get_left(right);
@@ -299,7 +299,7 @@ static lexeme multiply(lexeme args) {
 
 	args = lexeme_get_left(args);
 
-	if (args == NIL_LEXEME) {
+	if (args == lexeme_make(NIL)) {
 		fprintf(stderr, "Error: * requires at least one argument");
 	}
 	mulOp = mulOps[lexeme_get_type(lexeme_get_left(args))];
@@ -308,7 +308,7 @@ static lexeme multiply(lexeme args) {
 		exit(EXIT_FAILURE);
 	}
 
-	while (lexeme_get_right(args) != NIL_LEXEME) {
+	while (lexeme_get_right(args) != lexeme_make(NIL)) {
 		current = lexeme_get_left(args);
 		right = lexeme_get_right(args);
 		next = lexeme_get_left(right);
@@ -329,7 +329,7 @@ static lexeme divide(lexeme args) {
 
 	args = lexeme_get_left(args);
 
-	if (args == NIL_LEXEME) {
+	if (args == lexeme_make(NIL)) {
 		fprintf(stderr, "Error: + requires at least one argument");
 	}
 	divOp = divOps[lexeme_get_type(lexeme_get_left(args))];
@@ -338,7 +338,7 @@ static lexeme divide(lexeme args) {
 		exit(EXIT_FAILURE);
 	}
 
-	while (lexeme_get_right(args) != NIL_LEXEME) {
+	while (lexeme_get_right(args) != lexeme_make(NIL)) {
 		current = lexeme_get_left(args);
 		right = lexeme_get_right(args);
 		next = lexeme_get_left(right);
@@ -354,27 +354,27 @@ lexeme append(lexeme args) {
 	lexeme first = lexeme_get_left(lexeme_get_right(args));
 	lexeme second = lexeme_get_left(args);
 	lexeme retFirst;
-	lexeme retSecond = NIL_LEXEME;
+	lexeme retSecond = lexeme_make(NIL);
 	lexeme currentItem;
-	if (second != NIL_LEXEME) {
+	if (second != lexeme_make(NIL)) {
 		currentItem = lexeme_make(LIST);
 		retSecond = currentItem;
 		lexeme_set_left(currentItem, lexeme_get_left(second));
-		lexeme_set_right(currentItem, NIL_LEXEME);
-		while (lexeme_get_right(second) != NIL_LEXEME) {
+		lexeme_set_right(currentItem, lexeme_make(NIL));
+		while (lexeme_get_right(second) != lexeme_make(NIL)) {
 			second = lexeme_get_right(second);
 			lexeme_set_right(currentItem, lexeme_make(LIST));
 			currentItem = lexeme_get_right(currentItem);
-			lexeme_set_right(currentItem, NIL_LEXEME);
+			lexeme_set_right(currentItem, lexeme_make(NIL));
 			lexeme_set_left(currentItem, lexeme_get_left(second));
 		}
 	}
-	if (first != NIL_LEXEME) {
+	if (first != lexeme_make(NIL)) {
 		currentItem = lexeme_make(LIST);
 		retFirst = currentItem;
 		lexeme_set_left(currentItem, lexeme_get_left(first));
 		lexeme_set_right(currentItem, retSecond);
-		while (lexeme_get_right(first) != NIL_LEXEME) {
+		while (lexeme_get_right(first) != lexeme_make(NIL)) {
 			first = lexeme_get_right(first);
 			lexeme_set_right(currentItem, lexeme_make(LIST));
 			currentItem = lexeme_get_right(currentItem);
@@ -389,7 +389,7 @@ lexeme append(lexeme args) {
 }
 
 lexeme nil(lexeme args) {
-	return lexeme_make(lexeme_get_left(args) == NIL_LEXEME ? TRUE : FALSE);
+	return lexeme_make(lexeme_get_left(args) == lexeme_make(NIL) ? TRUE : FALSE);
 }
 
 lexeme greater(lexeme args) {
@@ -534,7 +534,7 @@ static lexeme equal(lexeme args) {
 	lexeme currentVal;
 	lexeme nextVal;
 
-	if (args == NIL_LEXEME || lexeme_get_right(args) == NIL_LEXEME) {
+	if (args == lexeme_make(NIL) || lexeme_get_right(args) == lexeme_make(NIL)) {
 		fprintf(stderr, "ERROR -- EQUAL: Requires at least two arguments");
 		exit(EXIT_FAILURE);
 	}
@@ -544,7 +544,7 @@ static lexeme equal(lexeme args) {
 		equalOp = &equalDefault;
 	}
 
-	while (lexeme_get_right(args) != NIL_LEXEME) {
+	while (lexeme_get_right(args) != lexeme_make(NIL)) {
 		currentVal = lexeme_get_left(args);
 		nextVal = lexeme_get_left(lexeme_get_right(args));
 		if (!equalOp(currentVal, nextVal)) {
@@ -576,20 +576,20 @@ static lexeme ifFunc(lexeme args) {
 }
 
 static lexeme apply(lexeme args) {
-	lexeme callArgList = NIL_LEXEME;
+	lexeme callArgList = lexeme_make(NIL);
 	lexeme currentArg;
 	lexeme newArg;
 	lexeme operator = lexeme_get_left(lexeme_get_right(args));
 	args = lexeme_get_left(args);
 
 
-	if (args != NIL_LEXEME) {
+	if (args != lexeme_make(NIL)) {
 		callArgList = lexeme_make(ARGLIST);
 		lexeme_set_left(callArgList, lexeme_get_left(args));
 		currentArg = callArgList;
 		args = lexeme_get_right(args);
 	}
-	while (args != NIL_LEXEME) {
+	while (args != lexeme_make(NIL)) {
 		newArg = lexeme_make(ARGLIST);
 		lexeme_set_left(newArg, lexeme_get_left(args));
 		lexeme_set_right(currentArg, newArg);
@@ -597,8 +597,8 @@ static lexeme apply(lexeme args) {
 		args = lexeme_get_right(args);
 	}
 
-	if (callArgList != NIL_LEXEME) {
-		lexeme_set_right(currentArg, NIL_LEXEME);
+	if (callArgList != lexeme_make(NIL)) {
+		lexeme_set_right(currentArg, lexeme_make(NIL));
 	}
 
 	return apply_call(operator, callArgList);
@@ -654,7 +654,7 @@ static lexeme build_if_list() {
 	newParamList = lexeme_make(LIST);
 	dot = lexeme_make(DOT);
 	newParam = lexeme_make(ID);
-	lexeme_set_right(newParamList, NIL_LEXEME);
+	lexeme_set_right(newParamList, lexeme_make(NIL));
 	lexeme_set_left(newParamList, dot);
 	lexeme_set_left(dot, newParam);
 	lexeme_set_data(newParam, "ifFalse");
@@ -688,7 +688,7 @@ static lexeme build_less_list() {
 	newParamList = lexeme_make(LIST);
 	newParam = lexeme_make(ID);
 	lexeme_set_left(newParamList, newParam);
-	lexeme_set_right(newParamList, NIL_LEXEME);
+	lexeme_set_right(newParamList, lexeme_make(NIL));
 	lexeme_set_data(newParam, "x1");
 	
 	currentParamList = newParamList;
@@ -710,7 +710,7 @@ static lexeme build_greater_list() {
 	newParamList = lexeme_make(LIST);
 	newParam = lexeme_make(ID);
 	lexeme_set_left(newParamList, newParam);
-	lexeme_set_right(newParamList, NIL_LEXEME);
+	lexeme_set_right(newParamList, lexeme_make(NIL));
 	lexeme_set_data(newParam, "x1");
 	
 	currentParamList = newParamList;
@@ -732,7 +732,7 @@ static lexeme build_head_list() {
 	lexeme paramlist = lexeme_make(LIST);
 	lexeme param = lexeme_make(ID);
 	lexeme_set_left(paramlist, param);
-	lexeme_set_right(paramlist, NIL_LEXEME);
+	lexeme_set_right(paramlist, lexeme_make(NIL));
 	lexeme_set_data(param, "list");
 	return paramlist;
 }
@@ -741,7 +741,7 @@ static lexeme build_tail_list() {
 	lexeme paramList = lexeme_make(LIST);
 	lexeme param = lexeme_make(ID);
 	lexeme_set_left(paramList, param);
-	lexeme_set_right(paramList, NIL_LEXEME);
+	lexeme_set_right(paramList, lexeme_make(NIL));
 	lexeme_set_data(param, "list");
 	return paramList;
 }
@@ -750,7 +750,7 @@ static lexeme build_nil_list() {
 	lexeme paramList = lexeme_make(LIST);
 	lexeme param = lexeme_make(ID);
 	lexeme_set_left(paramList, param);
-	lexeme_set_right(paramList, NIL_LEXEME);
+	lexeme_set_right(paramList, lexeme_make(NIL));
 	lexeme_set_data(param, "tested");
 	return paramList;
 }
@@ -763,7 +763,7 @@ static lexeme build_apply_list() {
 	lexeme_set_left(retParamList, firstParam);
 	lexeme_set_right(retParamList, rightParamList);
 	lexeme_set_left(rightParamList, secondParam);
-	lexeme_set_right(rightParamList, NIL_LEXEME);
+	lexeme_set_right(rightParamList, lexeme_make(NIL));
 	lexeme_set_data(firstParam, "operator");
 	lexeme_set_data(secondParam, "operands");
 	return retParamList;
@@ -773,7 +773,7 @@ static lexeme build_type_list() {
 	lexeme paramList = lexeme_make(LIST);
 	lexeme param = lexeme_make(ID);
 	lexeme_set_left(paramList, param);
-	lexeme_set_right(paramList, NIL_LEXEME);
+	lexeme_set_right(paramList, lexeme_make(NIL));
 	lexeme_set_data(param, "arg");
 	return paramList;
 }
@@ -786,7 +786,7 @@ static lexeme build_cons_list() {
 	lexeme_set_left(retParamList, firstParam);
 	lexeme_set_right(retParamList, rightParamList);
 	lexeme_set_left(rightParamList, secondParam);
-	lexeme_set_right(rightParamList, NIL_LEXEME);
+	lexeme_set_right(rightParamList, lexeme_make(NIL));
 	lexeme_set_data(firstParam, "head");
 	lexeme_set_data(secondParam, "tail");
 	return retParamList;
@@ -800,7 +800,7 @@ static lexeme build_append_list() {
 	lexeme_set_left(retParamList, firstParam);
 	lexeme_set_right(retParamList, rightParamList);
 	lexeme_set_left(rightParamList, secondParam);
-	lexeme_set_right(rightParamList, NIL_LEXEME);
+	lexeme_set_right(rightParamList, lexeme_make(NIL));
 	lexeme_set_data(firstParam, "first");
 	lexeme_set_data(secondParam, "second");
 	return retParamList;
@@ -814,7 +814,7 @@ static lexeme build_sref_list() {
 	lexeme_set_left(retParamList, firstParam);
 	lexeme_set_right(retParamList, rightParamList);
 	lexeme_set_left(rightParamList, secondParam);
-	lexeme_set_right(rightParamList, NIL_LEXEME);
+	lexeme_set_right(rightParamList, lexeme_make(NIL));
 	lexeme_set_data(firstParam, "index");
 	lexeme_set_data(secondParam, "str");
 	return retParamList;
@@ -825,7 +825,7 @@ static lexeme build_generic_list(char * name) {
 	lexeme amp = lexeme_make(AMP);
 	lexeme id = lexeme_make(ID);
 	lexeme_set_left(head, amp);
-	lexeme_set_right(head, NIL_LEXEME);
+	lexeme_set_right(head, lexeme_make(NIL));
 	lexeme_set_left(amp, id);
 	lexeme_set_data(id, name);
 	return head;
@@ -835,6 +835,6 @@ static lexeme build_generic_list(char * name) {
 static lexeme create_call_return(lexeme evaled) {
 	lexeme call = lexeme_make(CALL);
 	lexeme_set_left(call, evaled);
-	lexeme_set_right(call, NIL_LEXEME);
+	lexeme_set_right(call, lexeme_make(NIL));
 	return call;
 }

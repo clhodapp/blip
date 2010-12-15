@@ -159,7 +159,7 @@ static lexeme eval_lambda(lexeme env, lexeme l) {
 }
 
 static lexeme eval_block(lexeme env, lexeme l) {
-	lexeme blockEnv = env_extend(env, NIL_LEXEME, NIL_LEXEME);
+	lexeme blockEnv = env_extend(env, lexeme_make(NIL), lexeme_make(NIL));
 	return eval(blockEnv, lexeme_get_left(l));
 }
 
@@ -175,22 +175,22 @@ static void eval_args(lexeme env, lexeme params, lexeme args, lexeme *retParamLi
 	lexeme currentArg = args; // Really a list of the remaining arguments. At any given time, we care about the head
 	lexeme pendingParam;
 	lexeme pendingArg;
-	lexeme retArgs = NIL_LEXEME;
-	lexeme retParams = NIL_LEXEME;
+	lexeme retArgs = lexeme_make(NIL);
+	lexeme retParams = lexeme_make(NIL);
 	lexeme newArg;
 	lexeme newParam;
 	assert(params != NULL);
 	assert(args != NULL);
 
-	while (currentParam != NIL_LEXEME) {
+	while (currentParam != lexeme_make(NIL)) {
 		pendingParam = lexeme_get_left(currentParam);
-		if (currentArg == NIL_LEXEME && lexeme_get_type(pendingParam) != AMP) {
+		if (currentArg == lexeme_make(NIL) && lexeme_get_type(pendingParam) != AMP) {
 			fprintf(stderr, "Error: too few args\n");
 			exit(EXIT_FAILURE);
 		}
 		if (lexeme_get_type(pendingParam) == DOT) {
 			pendingParam = lexeme_get_left(pendingParam);
-			pendingArg = func_obj_make(env, NIL_LEXEME, lexeme_get_left(currentArg));
+			pendingArg = func_obj_make(env, lexeme_make(NIL), lexeme_get_left(currentArg));
 		}
 		else if (lexeme_get_type(pendingParam) == AMP) {
 			pendingParam = lexeme_get_left(pendingParam);
@@ -212,7 +212,7 @@ static void eval_args(lexeme env, lexeme params, lexeme args, lexeme *retParamLi
 			lexeme_set_left(newArg, pendingArg);
 			lexeme_set_right(newArg, retArgs);
 			retArgs = newArg;
-			currentArg = NIL_LEXEME; // show we have processes all args
+			currentArg = lexeme_make(NIL); // show we have processes all args
 			break;
 
 		}
@@ -234,7 +234,7 @@ static void eval_args(lexeme env, lexeme params, lexeme args, lexeme *retParamLi
 		currentParam = lexeme_get_right(currentParam);
 		currentArg = lexeme_get_right(currentArg);
 	}
-	if (currentArg != NIL_LEXEME) {
+	if (currentArg != lexeme_make(NIL)) {
 		fprintf(stderr, "Error: too many args\n");
 		exit(EXIT_FAILURE);
 	}
@@ -269,14 +269,14 @@ static lexeme eval_and_listify(lexeme env, lexeme l) {
 	lexeme previous;
 	lexeme current;
 
-	if (l == NIL_LEXEME) return l;
+	if (l == lexeme_make(NIL)) return l;
 
 	returned = lexeme_make(LIST);
 	lexeme_set_left(returned, eval(env, lexeme_get_left(l)));
 
 	previous = returned;
 	l = lexeme_get_right(l);
-	while(l != NIL_LEXEME) {
+	while(l != lexeme_make(NIL)) {
 		current = lexeme_make(LIST);
 		lexeme_set_right(previous, current);
 		lexeme_set_left(current, eval(env, lexeme_get_left(l)));
@@ -284,7 +284,7 @@ static lexeme eval_and_listify(lexeme env, lexeme l) {
 		previous = current;
 	}
 
-	lexeme_set_right(previous, NIL_LEXEME);
+	lexeme_set_right(previous, lexeme_make(NIL));
 
 	return returned;
 }
@@ -303,22 +303,22 @@ static lexeme functionalize_and_listify(lexeme env, lexeme l) {
 	lexeme previous;
 	lexeme current;
 
-	if (l == NIL_LEXEME) return l;
+	if (l == lexeme_make(NIL)) return l;
 
 	returned = lexeme_make(LIST);
-	lexeme_set_left(returned, func_obj_make(env, NIL_LEXEME, lexeme_get_left(l)));
+	lexeme_set_left(returned, func_obj_make(env, lexeme_make(NIL), lexeme_get_left(l)));
 
 	previous = returned;
 	l = lexeme_get_right(l);
-	while(l != NIL_LEXEME) {
+	while(l != lexeme_make(NIL)) {
 		current = lexeme_make(LIST);
 		lexeme_set_right(previous, current);
-		lexeme_set_left(current, func_obj_make(env, NIL_LEXEME, lexeme_get_left(l)));
+		lexeme_set_left(current, func_obj_make(env, lexeme_make(NIL), lexeme_get_left(l)));
 		l = lexeme_get_right(l);
 		previous = current;
 	}
 
-	lexeme_set_right(previous, NIL_LEXEME);
+	lexeme_set_right(previous, lexeme_make(NIL));
 
 	return returned;
 }

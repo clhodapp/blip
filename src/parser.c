@@ -75,7 +75,7 @@ static lexeme argList() {
 		lexeme_set_right(root, argList());
 	}
 	else {
-		lexeme_set_right(root, NIL_LEXEME);
+		lexeme_set_right(root, lexeme_make(NIL));
 	}
 	return root;
 }
@@ -134,7 +134,7 @@ static lexeme callable() {
 	if (check(OPAREN)) {
 		lexeme call = lexeme_make(CALL);
 		lexeme_set_left(call, root);
-		lexeme_set_right(call, NIL_LEXEME);
+		lexeme_set_right(call, lexeme_make(NIL));
 		root = call;
 		lexeme_destroy(match(OPAREN));
 		if (checkArgList()) {
@@ -177,7 +177,7 @@ static lexeme lambdaForm() {
 		lexeme_set_left(root, paramList());
 	}
 	else {
-		lexeme_set_left(root, NIL_LEXEME);
+		lexeme_set_left(root, lexeme_make(NIL));
 	}
 	lexeme_destroy(match(CPAREN));
 	lexeme_destroy(match(COMMA));
@@ -234,7 +234,7 @@ static lexeme paramList() {
 		amp = match(AMP);
 		lexeme_set_left(root, amp);
 		lexeme_set_left(amp, param());
-		lexeme_set_right(root, NIL_LEXEME);
+		lexeme_set_right(root, lexeme_make(NIL));
 	}
 	else {
 		lexeme_set_left(root, param());
@@ -243,7 +243,7 @@ static lexeme paramList() {
 			lexeme_set_right(root, paramList());
 		}
 		else {
-			lexeme_set_right(root, NIL_LEXEME);
+			lexeme_set_right(root, lexeme_make(NIL));
 		}
 	}
 	return root;

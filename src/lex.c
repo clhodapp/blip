@@ -331,11 +331,11 @@ static lexeme get_logical(lex_stream source) {
 	switch (ch)
 	{
 		case 't':
-			return TRUE_LEXEME;
+			return lexeme_make(TRUE);
 		case 'f':
-			return FALSE_LEXEME;
+			return lexeme_make(FALSE);
 		case 'n':
-			return NIL_LEXEME;
+			return lexeme_make(NIL);
 		default:
 			lex_stream_ungetc(ch, source);
 			return lexeme_make(INVALID_CHAR);

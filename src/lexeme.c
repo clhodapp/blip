@@ -9,6 +9,51 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct lexeme_t;
+static char * naturalNames[];
+static lexeme unique_lexemes[];
+static char * (*stringifiers[])(lexeme);
+
+static struct lexeme_t s_nil;
+static struct lexeme_t s_true;
+static struct lexeme_t s_false;
+static struct lexeme_t s_semi;
+static struct lexeme_t s_oparen;
+static struct lexeme_t s_cparen;
+static struct lexeme_t s_obrace;
+static struct lexeme_t s_cbrace;
+static struct lexeme_t s_amp;
+static struct lexeme_t s_dot;
+static struct lexeme_t s_lambda;
+static struct lexeme_t s_import;
+static struct lexeme_t s_invalid_char;
+static struct lexeme_t s_return;
+static struct lexeme_t s_bind;
+
+static char * to_string_default(lexeme l);
+static char * to_string_int(lexeme l);
+static char * to_string_dec(lexeme l);
+static char * to_string_string(lexeme l);
+static char * to_string_id(lexeme l);
+static char * to_string_true(lexeme l);
+static char * to_string_false(lexeme l);
+static char * to_string_nil(lexeme l);
+static char * to_string_list(lexeme l);
+static char * to_string_type(lexeme l);
+static char * to_string_invalid_char(lexeme l);
+static char * to_string_invalid_char(lexeme l);
+static char * to_string_import(lexeme l);
+static char * to_string_amp(lexeme l);
+static char * to_string_dot(lexeme l);
+static char * to_string_return(lexeme l);
+static char * to_string_bind(lexeme l);
+static char * to_string_oparen(lexeme l);
+static char * to_string_cparen(lexeme l);
+static char * to_string_obrace(lexeme l);
+static char * to_string_cbrace(lexeme l);
+static char * to_string_lambda(lexeme l);
+static char * to_string_semi(lexeme l);
+
 struct lexeme_t {
 	lexeme_type type;
 	bool data_initialized;
@@ -60,36 +105,84 @@ static char * naturalNames[LEXEME_TYPE_MAX + 1] = {
 	[TYPE] = "type"
 };
 
-static char * to_string_default(lexeme l);
-static char * to_string_int(lexeme l);
-static char * to_string_dec(lexeme l);
-static char * to_string_string(lexeme l);
-static char * to_string_id(lexeme l);
-static char * to_string_true(lexeme l);
-static char * to_string_false(lexeme l);
-static char * to_string_nil(lexeme l);
-static char * to_string_list(lexeme l);
-static char * to_string_type(lexeme l);
-
 static struct lexeme_t s_nil = {
-	.type = NIL,
-	.unique = true
+	.type = NIL
 };
 
 static struct lexeme_t s_true = {
-	.type = TRUE,
-	.unique = true
+	.type = TRUE
 };
 
 static struct lexeme_t s_false = {
-	.type = FALSE,
-	.unique = true
+	.type = FALSE
 };
 
+static struct lexeme_t s_semi = {
+	.type = SEMI
+};
 
-lexeme NIL_LEXEME = &s_nil;
-lexeme TRUE_LEXEME = &s_true;
-lexeme FALSE_LEXEME = &s_false;
+static struct lexeme_t s_oparen = {
+	.type = OPAREN
+};
+
+static struct lexeme_t s_cparen = {
+	.type = CPAREN
+};
+
+static struct lexeme_t s_obrace = {
+	.type = OBRACE
+};
+
+static struct lexeme_t s_cbrace = {
+	.type = CBRACE
+};
+
+static struct lexeme_t s_amp = {
+	.type = AMP
+};
+
+static struct lexeme_t s_dot = {
+	.type = DOT
+};
+
+static struct lexeme_t s_lambda = {
+	.type = LAMBDA
+};
+
+static struct lexeme_t s_bind = {
+	.type = BIND
+};
+
+static struct lexeme_t s_import = {
+	.type = IMPORT
+};
+
+static struct lexeme_t s_return = {
+	.type = RETURN
+};
+
+static struct lexeme_t s_eof = {
+	.type = END_OF_FILE
+};
+
+static lexeme unique_lexemes[LEXEME_TYPE_MAX + 1] = {
+	[RETURN] = &s_return,
+	[BIND] = &s_bind,
+	[INVALID_CHAR] = &s_invalid_char,
+	[IMPORT] = &s_import,
+	[LAMBDA] = &s_lambda,
+	[DOT] = &s_dot,
+	[AMP] = &s_amp,
+	[CBRACE] = &s_cbrace,
+	[OBRACE] = &s_obrace,
+	[CPAREN] = &s_cparen,
+	[OPAREN] = &s_oparen,
+	[SEMI] = &s_semi,
+	[FALSE] = &s_false,
+	[TRUE] = &s_true,
+	[NIL] = &s_nil,
+	[END_OF_FILE] = &s_eof
+};
 
 static char * (*stringifiers[LEXEME_TYPE_MAX + 1])(lexeme l) = {
 	[INT] = &to_string_int,
@@ -100,20 +193,39 @@ static char * (*stringifiers[LEXEME_TYPE_MAX + 1])(lexeme l) = {
 	[FALSE] = &to_string_false,
 	[NIL] = &to_string_nil,
 	[LIST] = &to_string_list,
-	[TYPE] = &to_string_type
+	[TYPE] = &to_string_type,
+	[LAMBDA] = &to_string_lambda,
+	[OPAREN] = &to_string_oparen,
+	[CPAREN] = &to_string_cparen,
+	[OBRACE] = &to_string_obrace,
+	[CBRACE] = &to_string_cbrace,
+	[IMPORT] = &to_string_import,
+	[DOT] = &to_string_dot,
+	[AMP] = &to_string_amp,
+	[INVALID_CHAR] = &to_string_invalid_char,
+	[RETURN] = &to_string_return,
+	[BIND] = &to_string_bind,
+	[SEMI] = &to_string_semi
+
 };
 
 static void lexeme_dec_free_data(lexeme l);
 static void lexeme_int_free_data(lexeme l);
 
 lexeme lexeme_make(lexeme_type type) {
-	lexeme l = (lexeme) malloc(sizeof(struct lexeme_t));
-	l->type = type;
-	l->data_initialized = false;
-	l->left = NULL;
-	l->right = NULL;
-	l->unique = false;
-	return l;
+	lexeme unique = unique_lexemes[type];
+	if (unique != NULL) {
+		return unique;
+	}
+	else {
+		lexeme l = (lexeme) malloc(sizeof(struct lexeme_t));
+		l->type = type;
+		l->data_initialized = false;
+		l->left = NULL;
+		l->right = NULL;
+		l->unique = false;
+		return l;
+	}
 }
 
 lexeme lexeme_copy(lexeme l) {
@@ -182,7 +294,7 @@ void * lexeme_set_data(lexeme l, void *d) {
 }
 
 void lexeme_destroy(lexeme l) {
-	if (!l->unique) {
+	if (unique_lexemes[l->type] == NULL) {
 		if (l->type == DEC) {
 			lexeme_dec_free_data(l);
 		}
@@ -303,6 +415,7 @@ static char * to_string_true(lexeme l) {
 	return "#t";
 }
 
+
 static char * to_string_false(lexeme l) {
 	return "#f";
 }
@@ -311,19 +424,70 @@ static char * to_string_nil(lexeme l) {
 	return "#n";
 }
 
+static char * to_string_invalid_char(lexeme l) {
+	char *c = malloc(2 * sizeof(char));
+	c[0] = *((char *) l->data);
+	c[1] = 0;
+	return c;
+}
+
+static char * to_string_import(lexeme l) {
+	return "import";
+}
+
+static char * to_string_amp(lexeme l) {
+	return "&";
+}
+
+static char * to_string_dot(lexeme l) {
+	return ".";
+}
+
+static char * to_string_return(lexeme l) {
+	return "return";
+}
+
+static char * to_string_bind(lexeme l) {
+	return "bind";
+}
+
+static char * to_string_oparen(lexeme l) {
+	return "(";
+}
+
+static char * to_string_cparen(lexeme l) {
+	return ")";
+}
+
+static char * to_string_obrace(lexeme l) {
+	return "{";
+}
+
+static char * to_string_cbrace(lexeme l) {
+	return "}";
+}
+
+static char * to_string_lambda(lexeme l) {
+	return "lambda";
+}
+
+static char * to_string_semi(lexeme l) {
+	return ";";
+}
+
 static char * to_string_list(lexeme l) {
 	char * returned = malloc(2 * sizeof(char));
 	strncpy(returned, "(", 2);
 	int size = 2; // null terminated strings
 	int extension;
 	const int COMMA_SPACE = 2; // space for a ", "
-	while (l != NIL_LEXEME) {
+	while (l != &s_nil) {
 		extension = strlen(lexeme_to_string(lexeme_get_left(l)));
 		returned = realloc(returned, (size + extension + COMMA_SPACE + 1) * sizeof(char));
 		strncpy((returned + size - 1), lexeme_to_string(lexeme_get_left(l)), (extension + 1));
 		size = size + extension;
 		l = l->right;
-		if (l != NIL_LEXEME) {
+		if (l != &s_nil) {
 			strncpy((returned + size - 1), ", ", 2);
 			size = size + COMMA_SPACE;
 		}
