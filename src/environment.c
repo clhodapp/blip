@@ -24,9 +24,9 @@ lexeme env_make() {
 	lexeme f = lexeme_make(FRAME);
 
 	env_set_frame(e, f);
-	env_set_next(e, NIL_LEXEME);
-	frame_set_id(f, NIL_LEXEME);
-	frame_set_val(f, NIL_LEXEME);
+	env_set_next(e, lexeme_make(NIL));
+	frame_set_id(f, lexeme_make(NIL));
+	frame_set_val(f, lexeme_make(NIL));
 	return e;
 }
 
@@ -69,28 +69,28 @@ lexeme env_alter(lexeme env, lexeme id, lexeme value) {
 	lexeme searchValue;
 	find(env, id, &searchId, &searchValue);
 
-	if (searchValue == NIL_LEXEME) return FALSE_LEXEME;
+	if (searchValue == lexeme_make(NIL)) return lexeme_make(FALSE);
 
 	lexeme_overwrite(searchValue, value);
-	return TRUE_LEXEME;
+	return lexeme_make(TRUE);
 }
 
 lexeme env_remove(lexeme env, lexeme id) {
-	if (env == NIL_LEXEME) return FALSE_LEXEME;
+	if (env == lexeme_make(NIL)) return lexeme_make(FALSE);
 	char * searchString = (char *) lexeme_get_data(id);
 	lexeme currentId = env_id_list(env);
 	lexeme currentValue = env_val_list(env);
-	lexeme prevId = NIL_LEXEME;
-	lexeme prevValue = NIL_LEXEME;
-	if (currentId == NIL_LEXEME) return env_remove(env_next(env), id);
+	lexeme prevId = lexeme_make(NIL);
+	lexeme prevValue = lexeme_make(NIL);
+	if (currentId == lexeme_make(NIL)) return env_remove(env_next(env), id);
 	while (strcmp(searchString, lexeme_get_data(lexeme_get_left(currentId)))) {
 		prevId = currentId;
 		prevValue = currentValue;
 		advance(&currentId);
 		advance(&currentValue);
-		if (currentId == NIL_LEXEME) return env_remove(env_next(env), id);
+		if (currentId == lexeme_make(NIL)) return env_remove(env_next(env), id);
 	}
-	if (prevId == NIL_LEXEME) {
+	if (prevId == lexeme_make(NIL)) {
 		env_set_id_list(env, lexeme_get_right(currentId));
 		env_set_val_list(env, lexeme_get_right(currentValue));
 	}
@@ -98,7 +98,7 @@ lexeme env_remove(lexeme env, lexeme id) {
 		lexeme_set_right(prevId, lexeme_get_right(currentId));
 		lexeme_set_right(prevValue, lexeme_get_right(currentValue));
 	}
-	return TRUE_LEXEME;
+	return lexeme_make(TRUE);
 }
 
 void env_destroy(lexeme env) {
@@ -110,16 +110,16 @@ static void advance(lexeme *l) {
 }
 
 static void find(lexeme env, lexeme f, lexeme *id, lexeme *value) {
-	if (env == NIL_LEXEME) {
-		*id = NIL_LEXEME;
-		*value = NIL_LEXEME;
+	if (env == lexeme_make(NIL)) {
+		*id = lexeme_make(NIL);
+		*value = lexeme_make(NIL);
 		return;
 	}
 	char * searchString = (char *) lexeme_get_data(f);
 	lexeme currentId = env_id_list(env);
 	lexeme currentValue  = env_val_list(env);
 
-	if (currentId == NIL_LEXEME) {
+	if (currentId == lexeme_make(NIL)) {
 		find(env_next(env), f, &currentId, &currentValue);
 		*id = currentId;
 		*value = currentValue;
@@ -129,7 +129,7 @@ static void find(lexeme env, lexeme f, lexeme *id, lexeme *value) {
 	while (strcmp(lexeme_get_data(lexeme_get_left(currentId)), searchString)) {
 		advance(&currentId);
 		advance(&currentValue);
-		if (currentId == NIL_LEXEME) {
+		if (currentId == lexeme_make(NIL)) {
 			find(env_next(env), f, &currentId, &currentValue);
 			*id = currentId;
 			*value = currentValue;
