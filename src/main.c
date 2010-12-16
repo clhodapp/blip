@@ -127,6 +127,9 @@ int main(int argc, char *argv[]) {
 		if (mode == CHECK_MODE) {
 			return 0;
 		}
+		else if (mode == REFORMAT_MODE) {
+			pretty_print(tree);
+		}
 		else {
 			eval(env, tree);
 		}

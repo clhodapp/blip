@@ -5,6 +5,7 @@
 #include <bigint.h>
 #include <bigfloat.h>
 #include <prettyprinter.h>
+#include <pair.h>
 
 void pretty_print(lexeme tree);
 
@@ -25,9 +26,11 @@ static void pretty_print_lambda(lexeme tree);
 static void pretty_print_paramlist(lexeme tree);
 static void pretty_print_call(lexeme tree);
 static void pretty_print_string(lexeme tree);
-static void pretty_print_list(lexeme tree);
+static void pretty_print_pair(lexeme tree);
 
 static void printtabs();
+static lexeme get_left(lexeme);
+static lexeme get_right(lexeme);
 
 static unsigned int tabcount = 0;
 
@@ -40,8 +43,8 @@ void pretty_print(lexeme tree) {
 	
 	lexeme_type type = lexeme_get_type(tree);
 	switch(type) {
-		case LIST:
-			pretty_print_list(tree);
+		case PAIR:
+			pretty_print_pair(tree);
 			break;
 		case STRING:
 			pretty_print_string(tree);
@@ -102,20 +105,34 @@ void pretty_print(lexeme tree) {
 }
 
 static void pretty_print_unitlist(lexeme tree) {
-	lexeme current = lexeme_get_left(tree);
-	lexeme next = lexeme_get_right(tree);
+	lexeme current = get_left(tree);
+	lexeme next = get_right(tree);
 	lexeme_destroy(tree);
 	pretty_print(current);
 	printf(";\n");
-	if (next != NULL) {
+	if (lexeme_get_type(next) != NIL) {
 		printtabs();
 		pretty_print(next);
 	}
 }
 
+static void pretty_print_pair(lexeme tree) {
+	if (lexeme_get_type(tree) == NIL) {
+		return;
+	}
+
+	lexeme right = get_right(tree);
+	pretty_print(get_left(tree));
+	if (lexeme_get_type(right) != NIL) {
+		printf(", ");
+		pretty_print(right);
+	}
+	//lexeme_destroy(tree);
+}
+
 static void pretty_print_bind(lexeme tree) {
-	lexeme idPart = lexeme_get_left(tree);
-	lexeme bodyPart = lexeme_get_right(tree);
+	lexeme idPart = get_left(tree);
+	lexeme bodyPart = get_right(tree);
 	lexeme_destroy(tree);
 	printf("bind(");
 	pretty_print(idPart);
@@ -161,8 +178,8 @@ static void pretty_print_id(lexeme tree) {
 }
 
 static void pretty_print_lambda(lexeme tree) {
-	lexeme paramList = lexeme_get_left(tree);
-	lexeme body = lexeme_get_right(tree);
+	lexeme paramList = get_left(tree);
+	lexeme body = get_right(tree);
 	lexeme_destroy(tree);
 	printf("lambda((");
 	pretty_print(paramList);
@@ -172,8 +189,8 @@ static void pretty_print_lambda(lexeme tree) {
 }
 
 static void pretty_print_paramlist(lexeme tree) {
-	lexeme currentParam = lexeme_get_left(tree);
-	lexeme next = lexeme_get_right(tree);
+	lexeme currentParam = get_left(tree);
+	lexeme next = get_right(tree);
 	lexeme_destroy(tree);
 	pretty_print(currentParam);
 	if (next != NULL) {
@@ -183,8 +200,8 @@ static void pretty_print_paramlist(lexeme tree) {
 }
 
 static void pretty_print_call(lexeme tree) {
-	lexeme caller = lexeme_get_left(tree);
-	lexeme argList = lexeme_get_right(tree);
+	lexeme caller = get_left(tree);
+	lexeme argList = get_right(tree);
 	lexeme_destroy(tree);
 	pretty_print(caller);
 	printf("(");
@@ -193,8 +210,8 @@ static void pretty_print_call(lexeme tree) {
 }
 
 static void pretty_print_arglist(lexeme tree) {
-	lexeme currentArg = lexeme_get_left(tree);
-	lexeme next = lexeme_get_right(tree);
+	lexeme currentArg = get_left(tree);
+	lexeme next = get_right(tree);
 	lexeme_destroy(tree);
 	pretty_print(currentArg);
 	if (next != NULL) {
@@ -204,7 +221,7 @@ static void pretty_print_arglist(lexeme tree) {
 }
 
 static void pretty_print_block(lexeme tree) {
-	lexeme next = lexeme_get_left(tree);
+	lexeme next = get_left(tree);
 	lexeme_destroy(tree);
 	printf("{\n");
 	tabcount++;
@@ -218,7 +235,7 @@ static void pretty_print_block(lexeme tree) {
 }
 
 static void pretty_print_return(lexeme tree) {
-	lexeme next = lexeme_get_left(tree);
+	lexeme next = get_left(tree);
 	lexeme_destroy(tree);
 	printf("return(");
 	pretty_print(next);
@@ -226,31 +243,17 @@ static void pretty_print_return(lexeme tree) {
 }
 
 static void pretty_print_dot(lexeme tree) {
-	lexeme next = lexeme_get_left(tree);
+	lexeme next = get_left(tree);
 	lexeme_destroy(tree);
 	printf(".");
 	pretty_print(next);
 }
 
 static void pretty_print_amp(lexeme tree) {
-	lexeme next = lexeme_get_left(tree);
+	lexeme next = get_left(tree);
 	lexeme_destroy(tree);
 	printf("&");
 	pretty_print(next);
-}
-
-static void pretty_print_list(lexeme tree) {
-	lexeme currentArg = lexeme_get_left(tree);
-	lexeme next = lexeme_get_right(tree);
-	lexeme_destroy(tree);
-	pretty_print(currentArg);
-	if (next != NIL_LEXEME) {
-		printf(", ");
-		pretty_print(next);
-	}
-	else {
-		lexeme_destroy(next);
-	}
 }
 
 static void pretty_print_string(lexeme tree) {
@@ -259,8 +262,18 @@ static void pretty_print_string(lexeme tree) {
 	lexeme_destroy(tree);
 }
 
-void printtabs() {
+static void printtabs() {
 	for(unsigned int i = tabcount; i > 0; i--) {
 		printf("\t");
 	}
+}
+
+static lexeme get_left(lexeme l) {
+	pair p = (pair) lexeme_get_data(l);
+	return pair_get_left(p);
+}
+
+static lexeme get_right(lexeme l) {
+	pair p = (pair) lexeme_get_data(l);
+	return pair_get_right(p);
 }

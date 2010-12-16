@@ -15,7 +15,7 @@ blip: $(BINDIR)/blip
 
 $(BINDIR)/blip: $(OBJDIR)/main.o $(OBJDIR)/lexeme.o $(OBJDIR)/lex.o $(OBJDIR)/darray.o \
  $(OBJDIR)/bigint.o $(OBJDIR)/bigfloat.o $(OBJDIR)/eval.o $(OBJDIR)/environment.o $(OBJDIR)/builtins.o \
- $(OBJDIR)/parser.o | $(BINDIR)
+ $(OBJDIR)/parser.o $(OBJDIR)/pair.o $(OBJDIR)/prettyprinter.o | $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(OBJDIR)/bigfloat.o: $(SRCDIR)/bigfloat.c $(INCLUDEDIR)/bigfloat.h | $(OBJDIR)

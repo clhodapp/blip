@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pair.h>
 
 static lex_stream l;
 static lexeme pending;
@@ -68,26 +69,36 @@ static lexeme program() {
 
 static lexeme argList() {
 	lexeme root;
-	root = lexeme_make(LIST);
-	lexeme_set_left(root, primary());
+	lexeme rootLeft;
+	lexeme rootRight;
+	pair rootPair;
+	root = lexeme_make(PAIR);
+	rootLeft =  primary();
 	if (check(COMMA)) {
 		lexeme_destroy(match(COMMA));
-		lexeme_set_right(root, argList());
+		rootRight = argList();
 	}
 	else {
-		lexeme_set_right(root, lexeme_make(NIL));
+		rootRight = lexeme_make(NIL);
 	}
+	rootPair = pair_make(rootLeft, rootRight);
+	lexeme_set_data(root, rootPair);
 	return root;
 }
 
 static lexeme binding() {
 	lexeme root;
+	lexeme rootLeft;
+	lexeme rootRight;
+	pair rootPair;
 	root = match(BIND);
 	lexeme_destroy(match(OPAREN));
-	lexeme_set_left(root, match(ID));
+	rootLeft = match(ID);
 	lexeme_destroy(match(COMMA));
-	lexeme_set_right(root, primary());
+	rootRight = primary();
 	lexeme_destroy(match(CPAREN));
+	rootPair = pair_make(rootLeft, rootRight);
+	lexeme_set_data(root, rootPair);
 	return root;
 }
 
@@ -122,28 +133,41 @@ static lexeme importForm() {
 
 static lexeme block() {
 	lexeme root;
+	lexeme rootLeft;
+	lexeme rootRight = lexeme_make(NIL);
+	pair rootPair;
 	root = lexeme_make(BLOCK);
 	lexeme_destroy(match(OBRACE));
-	lexeme_set_left(root, unitList());
+	rootLeft = unitList();
 	lexeme_destroy(match(CBRACE));
+	rootPair = pair_make(rootLeft, rootRight);
+	lexeme_set_data(root, rootPair);
 	return root;
 }
 
 static lexeme callable() {
-	lexeme root = called();
+	lexeme root;
+	lexeme rootLeft;
+	lexeme rootRight;
+	pair rootPair;
+	lexeme calledLexeme = called();
 	if (check(OPAREN)) {
-		lexeme call = lexeme_make(CALL);
-		lexeme_set_left(call, root);
-		lexeme_set_right(call, lexeme_make(NIL));
-		root = call;
+		root = lexeme_make(CALL);
+		rootLeft = calledLexeme;
+		rootRight = lexeme_make(NIL);
 		lexeme_destroy(match(OPAREN));
 		if (checkArgList()) {
-			lexeme_set_right(root, argList());
+			lexeme_destroy(rootRight);
+			rootRight = argList();
 		}
 		lexeme_destroy(match(CPAREN));
+		rootPair = pair_make(rootLeft, rootRight);
+		lexeme_set_data(root, rootPair);
+	}
+	else {
+		root = calledLexeme;
 	}
 	return root;
-
 }
 
 static lexeme called() {
@@ -166,23 +190,26 @@ static lexeme called() {
 	return root;
 }
 
-
-
 static lexeme lambdaForm() {
 	lexeme root;
+	lexeme rootLeft;
+	lexeme rootRight;
+	pair rootPair;
 	root = match(LAMBDA);
 	lexeme_destroy(match(OPAREN));
 	lexeme_destroy(match(OPAREN));
 	if (checkParamList()) {
-		lexeme_set_left(root, paramList());
+		rootLeft = paramList();
 	}
 	else {
-		lexeme_set_left(root, lexeme_make(NIL));
+		rootLeft = lexeme_make(NIL);
 	}
 	lexeme_destroy(match(CPAREN));
 	lexeme_destroy(match(COMMA));
-	lexeme_set_right(root, primary());
+	rootRight = primary();
 	lexeme_destroy(match(CPAREN));
+	rootPair = pair_make(rootLeft, rootRight);
+	lexeme_set_data(root, rootPair);
 	return root;
 }
 
@@ -213,39 +240,49 @@ static lexeme numeric() {
 
 static lexeme param() {
 	lexeme root;
-	root = NULL;
+	lexeme rootLeft;
+	lexeme rootRight = lexeme_make(NIL);
+	pair rootPair;
 	if (check(DOT)) {
 		root = match(DOT);
-	}
-	lexeme id = match(ID);
-	if (root) {
-		lexeme_set_left(root, id);
+		rootLeft = match(ID);
+		rootPair = pair_make(rootLeft, rootRight);
+		lexeme_set_data(root, rootPair);
 	}
 	else {
-		root = id;
+		root = match(ID);
 	}
+
 	return root;
 }
 
 static lexeme paramList() {
-	lexeme root = lexeme_make(LIST);
-	lexeme amp;
+	lexeme root = lexeme_make(PAIR);
+	lexeme rootLeft;
+	lexeme rootRight;
+	pair rootPair;
+	lexeme ampLeft;
+	lexeme ampRight = lexeme_make(NIL);
+	pair ampPair;
 	if(check(AMP)) {
-		amp = match(AMP);
-		lexeme_set_left(root, amp);
-		lexeme_set_left(amp, param());
-		lexeme_set_right(root, lexeme_make(NIL));
+		rootLeft = match(AMP);
+		ampLeft =  param();
+		rootRight = lexeme_make(NIL);
+		ampPair = pair_make(ampLeft, ampRight);
+		lexeme_set_data(rootLeft, ampPair);
 	}
 	else {
-		lexeme_set_left(root, param());
+		rootLeft = param();
 		if (check(COMMA)) {
 			lexeme_destroy(match(COMMA));
-			lexeme_set_right(root, paramList());
+			rootRight = paramList();
 		}
 		else {
-			lexeme_set_right(root, lexeme_make(NIL));
+			rootRight = lexeme_make(NIL);
 		}
 	}
+	rootPair = pair_make(rootLeft, rootRight);
+	lexeme_set_data(root, rootPair);
 	return root;
 }
 
@@ -276,32 +313,42 @@ static lexeme rawType() {
 
 static lexeme returnForm() {
 	lexeme root;
+	lexeme rootLeft;
+	lexeme rootRight = lexeme_make(NIL);
+	pair rootPair;
 	root = match(RETURN);
 	lexeme_destroy(match(OPAREN));
-	lexeme_set_left(root, primary());
+	rootLeft = primary();
 	lexeme_destroy(match(CPAREN));
+	rootPair = pair_make(rootLeft, rootRight);
+	lexeme_set_data(root, rootPair);
 	return root;
 }
 
 static lexeme unitList() {
 	lexeme root;
+	lexeme rootLeft;
+	lexeme rootRight;
+	pair rootPair;
 	root = lexeme_make(UNITLIST);
 	if (checkPrimary()) {
-		lexeme_set_left(root, primary());
+		rootLeft = primary();
 	}
 	else {
-		lexeme_set_left(root, returnForm());
+		rootLeft = returnForm();
 	}
 	lexeme_destroy(match(SEMI));
 	if (checkUnitList()) {
-		lexeme_set_right(root, unitList());
+		rootRight = unitList();
 	}
 	else if (checkImportForm()) {
-		lexeme_set_right(root, importForm());
+		rootRight = importForm();
 	}
 	else {
-		lexeme_set_right(root, NULL);
+		rootRight = lexeme_make(NIL);
 	}
+	rootPair = pair_make(rootLeft, rootRight);
+	lexeme_set_data(root, rootPair);
 	return root;
 }
 
