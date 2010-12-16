@@ -60,6 +60,9 @@ $(OBJDIR)/lex.o: $(SRCDIR)/lex.c $(INCLUDEDIR)/lex.h $(INCLUDEDIR)/lexeme.h $(IN
  $(INCLUDEDIR)/darray.h $(INCLUDEDIR)/bigfloat.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+$(OBJDIR)/pair.o: $(SRCDIR)/pair.c $(INCLUDEDIR)/pair.h $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 clean:
 	$(RM) -r $(OBJDIR) $(BINDIR)
 

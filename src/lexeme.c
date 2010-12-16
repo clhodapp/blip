@@ -8,11 +8,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pair.h>
 
 struct lexeme_t;
 static char * naturalNames[];
 static lexeme unique_lexemes[];
 static char * (*stringifiers[])(lexeme);
+static void (*data_destroyers[])(void *);
 
 static struct lexeme_t s_nil;
 static struct lexeme_t s_true;
@@ -53,6 +55,11 @@ static char * to_string_obrace(lexeme l);
 static char * to_string_cbrace(lexeme l);
 static char * to_string_lambda(lexeme l);
 static char * to_string_semi(lexeme l);
+static char * to_string_pair(lexeme l);
+
+static void i_bigint_destroy(void *);
+static void i_bigfloat_destroy(void *);
+static void i_pair_destroy(void *);
 
 struct lexeme_t {
 	lexeme_type type;
@@ -102,8 +109,27 @@ static char * naturalNames[LEXEME_TYPE_MAX + 1] = {
 	[LIST_SPACER] = "list spacer",
 	[BUILTIN_SPACER] = "builtin spacer",
 	[BUILTIN] = "builtin",
-	[TYPE] = "type"
+	[TYPE] = "type",
+	[PAIR] = "pair"
 };
+
+static void (*data_destroyers[LEXEME_TYPE_MAX + 1])(void * destroyed) = {
+	[INT] = &i_bigint_destroy,
+	[DEC] = &i_bigfloat_destroy,
+	[PAIR] = &i_pair_destroy
+};
+
+void i_bigint_destroy(void * destroyed) {
+	bigint_destroy((bigint) destroyed);
+}
+
+void i_bigfloat_destroy(void * destroyed) {
+	bigfloat_destroy((bigfloat) destroyed);
+}
+
+void i_pair_destroy(void * destroyed) {
+	pair_destroy((pair) destroyed);
+}
 
 static struct lexeme_t s_nil = {
 	.type = NIL
@@ -185,6 +211,7 @@ static lexeme unique_lexemes[LEXEME_TYPE_MAX + 1] = {
 };
 
 static char * (*stringifiers[LEXEME_TYPE_MAX + 1])(lexeme l) = {
+	[PAIR] = &to_string_pair,
 	[INT] = &to_string_int,
 	[STRING] = &to_string_string,
 	[DEC] = &to_string_dec,
@@ -208,9 +235,6 @@ static char * (*stringifiers[LEXEME_TYPE_MAX + 1])(lexeme l) = {
 	[SEMI] = &to_string_semi
 
 };
-
-static void lexeme_dec_free_data(lexeme l);
-static void lexeme_int_free_data(lexeme l);
 
 lexeme lexeme_make(lexeme_type type) {
 	lexeme unique = unique_lexemes[type];
@@ -294,16 +318,10 @@ void * lexeme_set_data(lexeme l, void *d) {
 }
 
 void lexeme_destroy(lexeme l) {
+	void (*data_destroyer) (void * destroyed);
 	if (unique_lexemes[l->type] == NULL) {
-		if (l->type == DEC) {
-			lexeme_dec_free_data(l);
-		}
-		else if (l->type == INT) {
-			lexeme_int_free_data(l);
-		}
-		if (l->data_initialized) {
-			free(l->data);
-		}
+		data_destroyer = data_destroyers[l->type];
+		data_destroyer(l->data);
 		free(l);
 	}
 }
@@ -369,18 +387,6 @@ lexeme lexeme_deep_copy(lexeme l) {
 	r->left = lexeme_deep_copy(l->left);
 	r->right = lexeme_deep_copy(l->right);
 	return r;
-}
-
-static void lexeme_dec_free_data(lexeme l) {
-	bigfloat f = (bigfloat) l->data;
-	bigfloat_destroy(f);
-	l->data_initialized = false;
-}
-
-static void lexeme_int_free_data(lexeme l) {
-	bigint b = (bigint) l->data;
-	bigint_destroy(b);
-	l->data_initialized = false;
 }
 
 static char * to_string_default(lexeme l) {
@@ -475,6 +481,48 @@ static char * to_string_semi(lexeme l) {
 	return ";";
 }
 
+static char * to_string_pair(lexeme l) {
+	char * returned = malloc(2 * sizeof(char)); // null-terminated string "("
+	strncpy(returned, "(", 2);
+	int size = 2;
+	int extension;
+	const int COMMA_SPACE = 2; // space for a ", "
+	const int SPACE_DOT_SPACE = 3; // space for a " . "
+	pair currentPair = (pair) lexeme_get_data(l);
+	lexeme left;
+	lexeme right;
+	do {
+		left = pair_get_left(currentPair);
+		right = pair_get_right(currentPair);
+		extension = strlen(lexeme_to_string(left));
+		returned = realloc(returned, (size + extension + 1) * sizeof(char));
+		strncpy((returned + size - 1), lexeme_to_string(left), (extension + 1));
+		size = size + extension;
+
+		if (lexeme_get_type(right) == PAIR) {
+			currentPair = (pair) lexeme_get_data(right);
+			returned = realloc(returned, (size + COMMA_SPACE + 1) * sizeof(char));
+			strncpy((returned + size - 1), ", ", 2);
+			size = size + COMMA_SPACE;
+		}
+		else {
+			currentPair = NULL;
+		}
+
+	} while (currentPair != NULL);
+	if (lexeme_get_type(right) != NIL) {
+		extension = strlen(lexeme_to_string(right));
+		returned = realloc(returned, (size + extension + SPACE_DOT_SPACE) * sizeof(char));
+		strncpy((returned + size - 1), " . ", 3);
+		size = size + SPACE_DOT_SPACE;
+		strncpy((returned + size - 1), lexeme_to_string(right), (extension + 1));
+		size = size + extension;
+	}
+
+	returned = realloc(returned, (size + 2) * sizeof(char));
+	strncpy((returned + size - 1), ")", 2);
+	return returned;
+}
 static char * to_string_list(lexeme l) {
 	char * returned = malloc(2 * sizeof(char));
 	strncpy(returned, "(", 2);
