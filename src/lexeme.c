@@ -24,13 +24,7 @@ static struct lexeme_t s_oparen;
 static struct lexeme_t s_cparen;
 static struct lexeme_t s_obrace;
 static struct lexeme_t s_cbrace;
-static struct lexeme_t s_amp;
-static struct lexeme_t s_dot;
-static struct lexeme_t s_lambda;
-static struct lexeme_t s_import;
 static struct lexeme_t s_invalid_char;
-static struct lexeme_t s_return;
-static struct lexeme_t s_bind;
 
 static char * to_string_default(lexeme l);
 static char * to_string_int(lexeme l);
@@ -163,42 +157,12 @@ static struct lexeme_t s_cbrace = {
 	.type = CBRACE
 };
 
-static struct lexeme_t s_amp = {
-	.type = AMP
-};
-
-static struct lexeme_t s_dot = {
-	.type = DOT
-};
-
-static struct lexeme_t s_lambda = {
-	.type = LAMBDA
-};
-
-static struct lexeme_t s_bind = {
-	.type = BIND
-};
-
-static struct lexeme_t s_import = {
-	.type = IMPORT
-};
-
-static struct lexeme_t s_return = {
-	.type = RETURN
-};
-
 static struct lexeme_t s_eof = {
 	.type = END_OF_FILE
 };
 
 static lexeme unique_lexemes[LEXEME_TYPE_MAX + 1] = {
-	[RETURN] = &s_return,
-	[BIND] = &s_bind,
 	[INVALID_CHAR] = &s_invalid_char,
-	[IMPORT] = &s_import,
-	[LAMBDA] = &s_lambda,
-	[DOT] = &s_dot,
-	[AMP] = &s_amp,
 	[CBRACE] = &s_cbrace,
 	[OBRACE] = &s_obrace,
 	[CPAREN] = &s_cparen,
@@ -232,7 +196,8 @@ static char * (*stringifiers[LEXEME_TYPE_MAX + 1])(lexeme l) = {
 	[INVALID_CHAR] = &to_string_invalid_char,
 	[RETURN] = &to_string_return,
 	[BIND] = &to_string_bind,
-	[SEMI] = &to_string_semi
+	[SEMI] = &to_string_semi,
+	[UNITLIST] = &to_string_pair
 
 };
 
