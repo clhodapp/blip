@@ -321,7 +321,9 @@ void lexeme_destroy(lexeme l) {
 	void (*data_destroyer) (void * destroyed);
 	if (unique_lexemes[l->type] == NULL) {
 		data_destroyer = data_destroyers[l->type];
-		data_destroyer(l->data);
+		if (data_destroyer != NULL) {
+			data_destroyer(l->data);
+		}
 		free(l);
 	}
 }
