@@ -43,7 +43,6 @@ typedef enum {
 	BUILTIN,
 	BUILTIN_SPACER,
 	LIST_SPACER,
-	LIST,
 	VAL_LIST,
 	ID_LIST,
 	TYPE,
@@ -60,7 +59,6 @@ char * lexeme_get_typename(lexeme l);
 //lexeme_type lexeme_type_from_string(char *value);
 char * lexeme_type_to_string(lexeme_type t);
 char * lexeme_type_natural_name(lexeme_type t);
-void lexeme_recursive_destroy(lexeme l);
 void * lexeme_get_data(lexeme l);
 lexeme_type lexeme_set_type(lexeme l, lexeme_type t);
 void * lexeme_set_data(lexeme l, void *d);
@@ -69,12 +67,7 @@ lexeme_type lexeme_recognize_special(char *c);
 void lexeme_overwrite(lexeme overwritten, lexeme overwriter);
 bigint lexeme_get_linenum(lexeme l);
 bigint lexeme_set_linenum(lexeme l, bigint linenum);
-lexeme lexeme_get_left(lexeme l);
-lexeme lexeme_set_left(lexeme modified, lexeme newLeft);
 lexeme lexeme_copy(lexeme l);
-lexeme lexeme_deep_copy(lexeme l);
-lexeme lexeme_get_right(lexeme l);
-lexeme lexeme_set_right(lexeme modified, lexeme newRight);
 char * lexeme_to_string(lexeme stringified);
 #endif
 

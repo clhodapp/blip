@@ -34,7 +34,6 @@ static char * to_string_id(lexeme l);
 static char * to_string_true(lexeme l);
 static char * to_string_false(lexeme l);
 static char * to_string_nil(lexeme l);
-static char * to_string_list(lexeme l);
 static char * to_string_type(lexeme l);
 static char * to_string_invalid_char(lexeme l);
 static char * to_string_invalid_char(lexeme l);
@@ -58,17 +57,13 @@ static void i_pair_destroy(void *);
 struct lexeme_t {
 	lexeme_type type;
 	bool data_initialized;
-	bool unique;
 	void *data;
 	bigint linenum;
-	lexeme left;
-	lexeme right;
 };
 
 static char * naturalNames[LEXEME_TYPE_MAX + 1] = {
 	[LEXEME_TYPE_MIN] = "lexeme minimum sentinal",
 	[LEXEME_TYPE_MAX] = "lexeme maximim sentinal",
-	[LIST] = "list",
 	[COMMA] = "comma",
 	[END_OF_FILE] = "end of file",
 	[OBRACE] = "opening brace",
@@ -183,7 +178,6 @@ static char * (*stringifiers[LEXEME_TYPE_MAX + 1])(lexeme l) = {
 	[TRUE] = &to_string_true,
 	[FALSE] = &to_string_false,
 	[NIL] = &to_string_nil,
-	[LIST] = &to_string_list,
 	[TYPE] = &to_string_type,
 	[LAMBDA] = &to_string_lambda,
 	[OPAREN] = &to_string_oparen,
@@ -210,9 +204,6 @@ lexeme lexeme_make(lexeme_type type) {
 		lexeme l = (lexeme) malloc(sizeof(struct lexeme_t));
 		l->type = type;
 		l->data_initialized = false;
-		l->left = NULL;
-		l->right = NULL;
-		l->unique = false;
 		return l;
 	}
 }
@@ -293,18 +284,6 @@ void lexeme_destroy(lexeme l) {
 	}
 }
 
-void lexeme_recursive_destroy(lexeme l) {
-	lexeme left = lexeme_get_left(l);
-	lexeme right = lexeme_get_right(l);
-	lexeme_destroy(l);
-	if (left != NULL) {
-		lexeme_recursive_destroy(left);
-	}
-	if (right != NULL) {
-		lexeme_recursive_destroy(right);
-	}
-}
-
 bigint lexeme_get_linenum(lexeme l) {
 	return l->linenum;
 }
@@ -312,25 +291,6 @@ bigint lexeme_get_linenum(lexeme l) {
 bigint lexeme_set_linenum(lexeme l, bigint linenum) {
 	l->linenum = linenum;
 	return linenum;
-}
-
-
-lexeme lexeme_get_left(lexeme l) {
-	return l->left;
-}
-
-lexeme lexeme_set_left(lexeme modified, lexeme newLeft) {
-	modified->left = newLeft;
-	return newLeft;
-}
-
-lexeme lexeme_get_right(lexeme l) {
-	return l->right;
-}
-
-lexeme lexeme_set_right(lexeme modified, lexeme newRight) {
-	modified->right = newRight;
-	return newRight;
 }
 
 void lexeme_overwrite(lexeme overwritten, lexeme overwriter) {
@@ -345,15 +305,6 @@ char * lexeme_to_string(lexeme l) {
 	else {
 		return stringifier(l);
 	}
-}
-
-lexeme lexeme_deep_copy(lexeme l) {
-	if (l == NULL) return NULL;
-	lexeme r = malloc(sizeof(struct lexeme_t));
-	*r = *l;
-	r->left = lexeme_deep_copy(l->left);
-	r->right = lexeme_deep_copy(l->right);
-	return r;
 }
 
 static char * to_string_default(lexeme l) {
@@ -487,26 +438,6 @@ static char * to_string_pair(lexeme l) {
 	}
 
 	returned = realloc(returned, (size + 2) * sizeof(char));
-	strncpy((returned + size - 1), ")", 2);
-	return returned;
-}
-static char * to_string_list(lexeme l) {
-	char * returned = malloc(2 * sizeof(char));
-	strncpy(returned, "(", 2);
-	int size = 2; // null terminated strings
-	int extension;
-	const int COMMA_SPACE = 2; // space for a ", "
-	while (l != &s_nil) {
-		extension = strlen(lexeme_to_string(lexeme_get_left(l)));
-		returned = realloc(returned, (size + extension + COMMA_SPACE + 1) * sizeof(char));
-		strncpy((returned + size - 1), lexeme_to_string(lexeme_get_left(l)), (extension + 1));
-		size = size + extension;
-		l = l->right;
-		if (l != &s_nil) {
-			strncpy((returned + size - 1), ", ", 2);
-			size = size + COMMA_SPACE;
-		}
-	}
 	strncpy((returned + size - 1), ")", 2);
 	return returned;
 }
