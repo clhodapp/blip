@@ -32,7 +32,7 @@ $(OBJDIR)/darray.o: $(SRCDIR)/darray.c $(INCLUDEDIR)/darray.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/environment.o: $(SRCDIR)/environment.c $(INCLUDEDIR)/environment.h $(INCLUDEDIR)/lexeme.h \
- $(INCLUDEDIR)/bigint.h | $(OBJDIR)
+ $(INCLUDEDIR)/bigint.h $(INCLUDEDIR)/pair.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/eval.o: $(SRCDIR)/eval.c $(INCLUDEDIR)/eval.h $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h \

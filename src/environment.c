@@ -3,46 +3,43 @@
 #include <lexeme.h>
 #include <stddef.h>
 #include <string.h>
+#include <pair.h>
 
-static void advance(lexeme *l);
 static void find(lexeme env, lexeme f, lexeme *id, lexeme *value);
 static lexeme env_id_list(lexeme env); // get first id for an environment
-static lexeme env_val_list(lexeme env); // get first value for environment
-static lexeme env_next(lexeme env); // get next environment
-static void frame_set_id(lexeme env, lexeme id); // set first id
-static void frame_set_val(lexeme env, lexeme val); // set first value
-static lexeme frame_id(lexeme frame);
-static lexeme frame_val(lexeme frame);
-static void env_set_next(lexeme env, lexeme next); // sets next environment
+static lexeme env_value_list(lexeme env); // get first value for environment
+static void lists_set_id(lexeme env, lexeme id); // set first id
+static void lists_set_value(lexeme env, lexeme val); // set first value
+static lexeme lists_get_id(lexeme lists);
+static lexeme lists_get_value(lexeme lists);
 static void env_set_id_list(lexeme env, lexeme idList);
-static void env_set_val_list(lexeme env, lexeme valList);
-static lexeme env_frame(lexeme env);
-static void env_set_frame(lexeme env, lexeme frame);
+static void env_set_value_list(lexeme env, lexeme valList);
+static lexeme env_get_lists(lexeme env);
 
 lexeme env_make() {
-	lexeme e = lexeme_make(LIST);
-	lexeme f = lexeme_make(FRAME);
+	lexeme e = lexeme_make(PAIR); // the extended environment
+	lexeme l = lexeme_make(PAIR); // the lists for the environment (id, value)
+	pair top = pair_make(l, lexeme_make(NIL));
+	pair bottom = pair_make(lexeme_make(NIL), lexeme_make(NIL));
 
-	env_set_frame(e, f);
-	env_set_next(e, lexeme_make(NIL));
-	frame_set_id(f, lexeme_make(NIL));
-	frame_set_val(f, lexeme_make(NIL));
+	lexeme_set_data(e, top);
+	lexeme_set_data(l, bottom);
 	return e;
 }
 
-lexeme env_parent(lexeme env) {
-	return env_next(env);
+lexeme env_get_parent(lexeme env) {
+	pair p = (pair) lexeme_get_data(env);
+	return pair_get_left(p);
 }
 
 lexeme env_extend(lexeme env, lexeme idList, lexeme valueList) {
-	lexeme e = lexeme_make(LIST);
-	lexeme f = lexeme_make(FRAME);
+	lexeme e = lexeme_make(PAIR); // the extended environment
+	lexeme l = lexeme_make(PAIR); // the lists for the environment (id, value)
+	pair top = pair_make(env, l);
+	pair bottom = pair_make(idList, valueList);
 
-
-	env_set_frame(e, f);
-	env_set_next(e, env);
-	frame_set_id(f, idList);
-	frame_set_val(f, valueList);
+	lexeme_set_data(e, top);
+	lexeme_set_data(l, bottom);
 	return e;
 }
 
@@ -54,14 +51,14 @@ lexeme env_lookup(lexeme env, lexeme id) {
 }
 
 void env_insert(lexeme env, lexeme id, lexeme value) {
-	lexeme idInserted = lexeme_make(LIST);
-	lexeme valueInserted = lexeme_make(LIST);
-	lexeme_set_left(idInserted, id);
-	lexeme_set_left(valueInserted, value);
-	lexeme_set_right(idInserted, env_id_list(env));
-	lexeme_set_right(valueInserted, env_val_list(env));
+	lexeme idInserted = lexeme_make(PAIR);
+	lexeme valueInserted = lexeme_make(PAIR);
+	pair idData = pair_make(id, env_id_list(env));
+	pair valueData = pair_make(value, env_value_list(env));
+	lexeme_set_data(idInserted, idData);
+	lexeme_set_data(valueInserted, valueData);
 	env_set_id_list(env, idInserted);
-	env_set_val_list(env, valueInserted);
+	env_set_value_list(env, valueInserted);
 }
 
 lexeme env_alter(lexeme env, lexeme id, lexeme value) {
@@ -76,120 +73,140 @@ lexeme env_alter(lexeme env, lexeme id, lexeme value) {
 }
 
 lexeme env_remove(lexeme env, lexeme id) {
-	if (env == lexeme_make(NIL)) return lexeme_make(FALSE);
-	char * searchString = (char *) lexeme_get_data(id);
-	lexeme currentId = env_id_list(env);
-	lexeme currentValue = env_val_list(env);
-	lexeme prevId = lexeme_make(NIL);
-	lexeme prevValue = lexeme_make(NIL);
-	if (currentId == lexeme_make(NIL)) return env_remove(env_next(env), id);
-	while (strcmp(searchString, lexeme_get_data(lexeme_get_left(currentId)))) {
-		prevId = currentId;
-		prevValue = currentValue;
-		advance(&currentId);
-		advance(&currentValue);
-		if (currentId == lexeme_make(NIL)) return env_remove(env_next(env), id);
+	lexeme currentEnv = env;
+	lexeme prevIdPairLexeme = lexeme_make(NIL);
+	lexeme prevValuePairLexeme = lexeme_make(NIL);
+	lexeme currentIdPairLexeme = env_id_list(env);
+	lexeme currentValuePairLexeme = env_value_list(env);
+	lexeme nextIdPairLexeme;
+	lexeme nextValuePairLexeme;
+	pair newIdPair;
+	pair newValuePair;
+	lexeme prevId;
+	lexeme prevValue;
+	lexeme currentId;
+	lexeme currentValue;
+
+	while (lexeme_get_type(currentEnv) != NIL) {
+		currentId = pair_get_left(lexeme_get_data(currentIdPairLexeme));
+
+		// if the first thng needs to be removed, just move the head forward
+		if (!strcmp(lexeme_get_data(currentId), lexeme_get_data(id))) {
+			env_set_id_list(env, pair_get_right(lexeme_get_data(currentIdPairLexeme)));
+			env_set_value_list(env, pair_get_right(lexeme_get_data(currentValuePairLexeme)));
+			return lexeme_make(TRUE);
+		}
+
+		prevIdPairLexeme = currentIdPairLexeme;
+		prevValuePairLexeme = currentValuePairLexeme;
+		currentIdPairLexeme = pair_get_right(lexeme_get_data(currentIdPairLexeme)); 
+		currentValuePairLexeme = pair_get_right(lexeme_get_data(currentValuePairLexeme));
+
+		while (lexeme_get_type(currentIdPairLexeme) != NIL) {
+			currentId = pair_get_left(lexeme_get_data(currentIdPairLexeme));
+			currentValue = pair_get_right(lexeme_get_data(currentValuePairLexeme));
+			prevId = pair_get_left(lexeme_get_data(prevIdPairLexeme));
+			prevValue = pair_get_left(lexeme_get_data(prevValuePairLexeme));
+			nextIdPairLexeme = pair_get_right(lexeme_get_data(currentId));
+			nextValuePairLexeme = pair_get_right(lexeme_get_data(currentValue));
+			if (!strcmp(lexeme_get_data(currentId), lexeme_get_data(id))) {
+				newIdPair = pair_make(prevId, nextIdPairLexeme);
+				newValuePair = pair_make(prevValue, nextValuePairLexeme);
+				return lexeme_make(TRUE);
+			}
+			currentIdPairLexeme = nextIdPairLexeme;
+			currentValuePairLexeme = nextValuePairLexeme;
+		}
+
+		currentEnv = env_get_parent(currentEnv);
 	}
-	if (prevId == lexeme_make(NIL)) {
-		env_set_id_list(env, lexeme_get_right(currentId));
-		env_set_val_list(env, lexeme_get_right(currentValue));
-	}
-	else {
-		lexeme_set_right(prevId, lexeme_get_right(currentId));
-		lexeme_set_right(prevValue, lexeme_get_right(currentValue));
-	}
-	return lexeme_make(TRUE);
+
+	return lexeme_make(FALSE);
 }
 
 void env_destroy(lexeme env) {
 }
 			
 
-static void advance(lexeme *l) {
-	*l = lexeme_get_right(*l);
-}
-
 static void find(lexeme env, lexeme f, lexeme *id, lexeme *value) {
-	if (env == lexeme_make(NIL)) {
-		*id = lexeme_make(NIL);
-		*value = lexeme_make(NIL);
-		return;
-	}
 	char * searchString = (char *) lexeme_get_data(f);
-	lexeme currentId = env_id_list(env);
-	lexeme currentValue  = env_val_list(env);
+	lexeme currentIdPairLexeme;
+	lexeme currentValuePairLexeme;
+	lexeme currentId;
+	lexeme currentValue;
+	pair currentIdPair;
+	pair currentValuePair;
 
-	if (currentId == lexeme_make(NIL)) {
-		find(env_next(env), f, &currentId, &currentValue);
-		*id = currentId;
-		*value = currentValue;
-		return;
-	}
-
-	while (strcmp(lexeme_get_data(lexeme_get_left(currentId)), searchString)) {
-		advance(&currentId);
-		advance(&currentValue);
-		if (currentId == lexeme_make(NIL)) {
-			find(env_next(env), f, &currentId, &currentValue);
-			*id = currentId;
-			*value = currentValue;
-			return;
+	while (lexeme_get_type(env) != NIL) {
+		currentIdPairLexeme = env_id_list(env);
+		currentValuePairLexeme = env_id_list(env);
+		while (lexeme_get_type(currentIdPairLexeme) != NIL) {
+			currentIdPair = (pair) lexeme_get_data(currentIdPairLexeme);
+			currentId = pair_get_left(currentIdPair); 
+			currentValuePair = (pair) lexeme_get_data(currentValuePairLexeme);
+			if (!strcmp(lexeme_get_data(currentId), searchString)) {
+				currentValue = pair_get_left(currentValuePair);
+				*id = currentId;
+				*value = currentValue;
+				return;
+			}
+			currentIdPairLexeme = pair_get_right(currentIdPair);
+			currentValuePairLexeme = pair_get_right(currentValuePair);
 		}
+		env = env_get_parent(env);
 	}
-	*id = lexeme_get_left(currentId);
-	*value = lexeme_get_left(currentValue);
-	return;
+
+	*id = lexeme_make(NIL);
+	*value = lexeme_make(NIL);
 }
 
 static lexeme env_id_list(lexeme env) {
-	lexeme frame = env_frame(env);
-	return frame_id(frame);
+	pair p = (pair) lexeme_get_data(env);
+	lexeme lists = pair_get_right(p);
+	return lists_get_id(lists);
 }
 
-static lexeme env_val_list(lexeme env) {
-	lexeme frame = env_frame(env);
-	return frame_val(frame);
-}
-
-static lexeme env_next(lexeme env) {
-	return lexeme_get_right(env);
+static lexeme env_value_list(lexeme env) {
+	pair p = (pair) lexeme_get_data(env);
+	lexeme lists = pair_get_right(p);
+	return lists_get_value(lists);
 }
 
 static void env_set_id_list(lexeme env, lexeme id) {
-	lexeme frame = env_frame(env);
-	frame_set_id(frame, id);
+	pair p = lexeme_get_data(env);
+	lexeme lists = pair_get_right(p);
+	lists_set_id(lists, id);
 }
 
-static void env_set_val_list(lexeme env, lexeme val) {
-	lexeme frame = env_frame(env);
-	frame_set_val(frame, val);
+static void env_set_value_list(lexeme env, lexeme value) {
+	lexeme lists = env_get_lists(env);
+	lists_set_value(lists, value);
 }
 
-static void env_set_next(lexeme env, lexeme next) {
-	lexeme_set_right(env, next);
+static void lists_set_id(lexeme lists, lexeme id) {
+	lexeme value = lists_get_value(lists);
+	pair p = pair_make(id, value);
+	lexeme_set_data(lists, p);
 }
 
-static void frame_set_id(lexeme frame, lexeme id) {
-	lexeme_set_left(frame, id);
+static void lists_set_value(lexeme lists, lexeme value) {
+	lexeme id = lists_get_id(lists);
+	pair p = pair_make(id, value);
+	lexeme_set_data(lists, p);
 }
 
-static void frame_set_val(lexeme frame, lexeme val) {
-	lexeme_set_right(frame, val);
+static lexeme lists_get_id(lexeme lists) {
+	pair p = lexeme_get_data(lists);
+	return pair_get_left(p);
 }
 
-static lexeme frame_id(lexeme frame) {
-	return lexeme_get_left(frame);
+static lexeme lists_get_value(lexeme lists) {
+	pair p = lexeme_get_data(lists);
+	return pair_get_right(p);
 }
 
-static lexeme frame_val(lexeme frame) {
-	return lexeme_get_right(frame);
-}
-
-static lexeme env_frame(lexeme env) {
-	return lexeme_get_left(env);
-}
-
-static void env_set_frame(lexeme env, lexeme frame) {
-	lexeme_set_left(env, frame);
+static lexeme env_get_lists(lexeme env) {
+	pair p = lexeme_get_data(env);
+	return pair_get_left(p);
 }
 
