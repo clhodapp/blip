@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <builtins.h>
 #include <assert.h>
+#include <pair.h>
 
 static lexeme eval_unitlist(lexeme env, lexeme l);
 static lexeme eval_lambda(lexeme env, lexeme l);
@@ -25,6 +26,8 @@ static lexeme functionalize_and_listify(lexeme env, lexeme l);
 static lexeme eval_and_listify(lexeme env, lexeme l);
 static lexeme simplifyCall(lexeme env, lexeme call);
 static void eval_args(lexeme env, lexeme paramList, lexeme argList, lexeme *retParamList, lexeme *retArgList);
+static lexeme delay(lexeme env, lexeme delayed);
+static bool checkType(lexeme checked, lexeme_type type);
 //static lexeme resolveCalled(lexeme env, lexeme l);
 
 lexeme (*actions [LEXEME_TYPE_MAX])(lexeme env, lexeme l) = {
@@ -54,7 +57,8 @@ void eval_init(lexeme env) {
 }
 
 static lexeme eval_return(lexeme env, lexeme l) {
-	lexeme body = lexeme_get_left(l);
+	pair p = lexeme_get_data(l);
+	lexeme body = pair_get_left(p);
 	if (lexeme_get_type(body) == CALL) {
 		return simplifyCall(env, body);
 	}
@@ -62,8 +66,10 @@ static lexeme eval_return(lexeme env, lexeme l) {
 }
 
 static lexeme simplifyCall(lexeme env, lexeme call) {
-	lexeme rawCalled = lexeme_get_left(call);
-	lexeme callArgs  = lexeme_get_right(call);
+	pair p1 = lexeme_get_data(call);
+	pair p2 = lexeme_get_data(pair_get_right(p1));
+	lexeme rawCalled = pair_get_left(p1);
+	lexeme callArgs = pair_get_right(p2);
 	lexeme realCalled = eval(env, rawCalled);
 	lexeme callParams;
 	lexeme newArgs;
@@ -74,13 +80,15 @@ static lexeme simplifyCall(lexeme env, lexeme call) {
 		return eval(env, call);
 	}
 	else {
-		callParams = lexeme_get_left(realCalled);
+		p2 = lexeme_get_data(realCalled);
+		callParams = pair_get_left(p2);
 		newCall = lexeme_make(CALL);
-		newCalled = lexeme_copy(realCalled);
+		newCalled = lexeme_make(lexeme_get_type(realCalled));
 		eval_args(env, callParams, callArgs, &newParams, &newArgs);
-		lexeme_set_left(newCall, newCalled);
-		lexeme_set_right(newCall, newArgs);
-		lexeme_set_left(newCalled, newParams);
+		p1 = pair_make(newCalled, newArgs);
+		p2 = pair_make(newParams, pair_get_right(lexeme_get_data(realCalled)));
+		lexeme_set_data(newCall, p1);
+		lexeme_set_data(newCalled, p2);
 		return newCall;
 	}
 }
@@ -88,16 +96,16 @@ static lexeme simplifyCall(lexeme env, lexeme call) {
 static lexeme eval_unitlist(lexeme env, lexeme l) {
 	lexeme left;
 	while (l != NULL) {
-		left = eval(env, lexeme_get_left(l));
-		if (lexeme_get_type(lexeme_get_left(l)) == RETURN) return left;
-		l = lexeme_get_right(l);
+		left = eval(env, pair_get_left(lexeme_get_data(l)));
+		if (lexeme_get_type(pair_get_left(lexeme_get_data(l))) == RETURN) return left;
+		l = pair_get_right(lexeme_get_data(l));
 	}
 	return left;
 }
 
 static lexeme eval_bind(lexeme env, lexeme l) {
-	lexeme id = lexeme_get_left(l);
-	lexeme val = eval(env, lexeme_get_right(l));
+	lexeme id = pair_get_left(lexeme_get_data(l));
+	lexeme val = eval(env, pair_get_right(lexeme_get_data(l)));
 	assert(val != NULL);
 	env_insert(env, id, val);
 	return id;
@@ -127,8 +135,8 @@ static lexeme eval_call(lexeme env, lexeme l) {
 	lexeme body;
 	lexeme tmp;
 	while (lexeme_get_type(l) == CALL) {
-		called = eval(env, lexeme_get_left(l));
-		args = lexeme_get_right(l);
+		called = eval(env, pair_get_left(lexeme_get_data(l)));
+		args = pair_get_right(lexeme_get_data(l));
 		type = lexeme_get_type(called);
 		if (lexeme_get_type(called) == BUILTIN) {
 			params = builtin_get_params(called);
@@ -152,15 +160,15 @@ static lexeme eval_call(lexeme env, lexeme l) {
 }
 
 static lexeme eval_lambda(lexeme env, lexeme l) {
-	lexeme params = lexeme_get_left(l);
-	lexeme body = lexeme_get_right(l);
+	lexeme params = pair_get_left(lexeme_get_data(l));
+	lexeme body = pair_get_right(lexeme_get_data(l));
 	lexeme r = func_obj_make(env, params, body);
 	return r;
 }
 
 static lexeme eval_block(lexeme env, lexeme l) {
 	lexeme blockEnv = env_extend(env, lexeme_make(NIL), lexeme_make(NIL));
-	return eval(blockEnv, lexeme_get_left(l));
+	return eval(blockEnv, pair_get_left(lexeme_get_data(l)));
 }
 
 static lexeme eval_args_and_extend(lexeme evalEnv, lexeme funcDefEnv, lexeme params, lexeme args) {
@@ -171,169 +179,142 @@ static lexeme eval_args_and_extend(lexeme evalEnv, lexeme funcDefEnv, lexeme par
 }
 
 static void eval_args(lexeme env, lexeme params, lexeme args, lexeme *retParamList, lexeme *retArgList) {
-	lexeme currentParam = params; // Really a list of the remaining parameters. At any given time, we care about the head
-	lexeme currentArg = args; // Really a list of the remaining arguments. At any given time, we care about the head
-	lexeme pendingParam;
-	lexeme pendingArg;
-	lexeme retArgs = lexeme_make(NIL);
-	lexeme retParams = lexeme_make(NIL);
+	lexeme retParamHead = lexeme_make(NIL);
+	lexeme retArgHead = lexeme_make(NIL);
+	lexeme currentParam;
+	lexeme currentArg;
 	lexeme newArg;
 	lexeme newParam;
-	assert(params != NULL);
-	assert(args != NULL);
-
-	while (currentParam != lexeme_make(NIL)) {
-		pendingParam = lexeme_get_left(currentParam);
-		if (currentArg == lexeme_make(NIL) && lexeme_get_type(pendingParam) != AMP) {
-			fprintf(stderr, "Error: too few args\n");
-			exit(EXIT_FAILURE);
-		}
-		if (lexeme_get_type(pendingParam) == DOT) {
-			pendingParam = lexeme_get_left(pendingParam);
-			pendingArg = func_obj_make(env, lexeme_make(NIL), lexeme_get_left(currentArg));
-		}
-		else if (lexeme_get_type(pendingParam) == AMP) {
-			pendingParam = lexeme_get_left(pendingParam);
-			if (lexeme_get_type(pendingParam) == DOT) {
-				pendingParam = lexeme_get_left(pendingParam);
-				pendingArg = functionalize_and_listify(env, currentArg);
+	pair p;
+	while (lexeme_get_type(args) != NIL) {
+		currentParam = pair_get_left(lexeme_get_data(params));
+		currentArg = pair_get_left(lexeme_get_data(args));
+		if (checkType(currentParam, AMP)) {
+			currentParam = pair_get_left(lexeme_get_data(currentParam));
+			if (lexeme_get_type(currentParam) == DOT) {
+				currentParam = pair_get_left(lexeme_get_data(currentParam));
+				newArg = functionalize_and_listify(env, args);
 			}
 			else {
-				pendingArg = eval_and_listify(env, currentArg);
+				newArg = eval_and_listify(env, args);
 			}
-
-			newParam = lexeme_make(LIST);
-			newArg = lexeme_make(LIST);
-
-			lexeme_set_left(newParam, pendingParam);
-			lexeme_set_right(newParam, retParams);
-			retParams = newParam;
-
-			lexeme_set_left(newArg, pendingArg);
-			lexeme_set_right(newArg, retArgs);
-			retArgs = newArg;
-			currentArg = lexeme_make(NIL); // show we have processes all args
-			break;
-
+			params = lexeme_make(NIL);
+			args = lexeme_make(NIL);
 		}
 		else {
-			pendingArg = eval(env, lexeme_get_left(currentArg));
+			if (checkType(currentParam, DOT)) {
+				newParam = pair_get_left(lexeme_get_data(params));
+				newArg = delay(env, pair_get_left(lexeme_get_data(args)));
+			}
+			else {
+				newParam = currentParam;
+				newArg = eval(env, currentArg);
+			}
+			params = pair_get_right(lexeme_get_data(params));
+			args = pair_get_right(lexeme_get_data(args));
 		}
-
-		newParam = lexeme_make(LIST);
-		newArg = lexeme_make(LIST);
-
-		lexeme_set_left(newParam, pendingParam);
-		lexeme_set_right(newParam, retParams);
-		retParams = newParam;
-
-		lexeme_set_left(newArg, pendingArg);
-		lexeme_set_right(newArg, retArgs);
-		retArgs = newArg;
-
-		currentParam = lexeme_get_right(currentParam);
-		currentArg = lexeme_get_right(currentArg);
+		p = pair_make(newParam, retParamHead);
+		retParamHead = lexeme_make(PAIR);
+		lexeme_set_data(retParamHead, p);
+		p = pair_make(newArg, retArgHead);
+		retArgHead = lexeme_make(PAIR);
+		lexeme_set_data(retArgHead, p);
 	}
-	if (currentArg != lexeme_make(NIL)) {
-		fprintf(stderr, "Error: too many args\n");
-		exit(EXIT_FAILURE);
-	}
-	*retParamList = retParams;
-	*retArgList = retArgs;
+	*retParamList = retParamHead;
+	*retArgList = retArgHead;
 }
 
 lexeme func_obj_make(lexeme env, lexeme params, lexeme body) {
 	lexeme r = lexeme_make(FUNC_OBJ);
-	lexeme r1 = lexeme_make(FUNC_OBJ);
-	lexeme_set_left(r, params);
-	lexeme_set_right(r, r1);
-	lexeme_set_left(r1, env);
-	lexeme_set_right(r1, body);
+	lexeme r1 = lexeme_make(PAIR);
+	pair p = pair_make(params, r1);
+	pair p1 = pair_make(env, body);
+	lexeme_set_data(r, p);
+	lexeme_set_data(r1, p1);
 	return r;
 }
 
 static lexeme func_obj_env(lexeme f) {
-	return lexeme_get_left(lexeme_get_right(f));
+	pair top = lexeme_get_data(f);
+	lexeme l = pair_get_right(top);
+	pair bottom = lexeme_get_data(l);
+	return pair_get_left(bottom);
 }
 
 static lexeme func_obj_params(lexeme f) {
-	return lexeme_get_left(f);
+	return pair_get_left(lexeme_get_data(f));
 }
 
 static lexeme func_obj_body(lexeme f) {
-	return lexeme_get_right(lexeme_get_right((f)));
+	pair top = lexeme_get_data(f);
+	lexeme l = pair_get_right(top);
+	pair bottom = lexeme_get_data(l);
+	return pair_get_right(bottom);
 }
 
 static lexeme eval_and_listify(lexeme env, lexeme l) {
 	lexeme returned;
 	lexeme previous;
 	lexeme current;
+	lexeme prevLeft;
+	pair p;
 
-	if (l == lexeme_make(NIL)) return l;
+	if (l == lexeme_make(NIL)) return lexeme_make(NIL);
 
-	returned = lexeme_make(LIST);
-	lexeme_set_left(returned, eval(env, lexeme_get_left(l)));
+	returned = lexeme_make(PAIR);
+	p = pair_make(eval(env, pair_get_left(lexeme_get_data(l))), lexeme_make(NIL));
+	lexeme_set_data(returned, p);
 
 	previous = returned;
-	l = lexeme_get_right(l);
-	while(l != lexeme_make(NIL)) {
-		current = lexeme_make(LIST);
-		lexeme_set_right(previous, current);
-		lexeme_set_left(current, eval(env, lexeme_get_left(l)));
-		l = lexeme_get_right(l);
+	l = pair_get_right(lexeme_get_data(l));
+	while(!checkType(l, NIL)) {
+		current = lexeme_make(PAIR);
+		prevLeft = pair_get_left(lexeme_get_data(previous));
+		p = pair_make(prevLeft, current);
+		lexeme_set_data(previous, p);
+		p = pair_make(eval(env, pair_get_left(lexeme_get_data(l))), lexeme_make(NIL));
+		lexeme_set_data(current, p);
+		l = pair_get_right(lexeme_get_data(l));
 		previous = current;
 	}
-
-	lexeme_set_right(previous, lexeme_make(NIL));
 
 	return returned;
 }
 
 static lexeme functionalize_and_listify(lexeme env, lexeme l) {
-//	lexeme returned;
-//
-//	if (l == NIL_LEXEME) return l;
-//
-//	returned = lexeme_make(LIST);
-//	lexeme_set_left(returned, func_obj_make(env, NIL_LEXEME, lexeme_get_left(l)));
-//	lexeme_set_right(returned, functionalize_and_listify(env, lexeme_get_right(l)));
-//	return returned;
-
 	lexeme returned;
 	lexeme previous;
 	lexeme current;
+	lexeme prevLeft;
+	pair p;
 
-	if (l == lexeme_make(NIL)) return l;
+	if (l == lexeme_make(NIL)) return lexeme_make(NIL);
 
-	returned = lexeme_make(LIST);
-	lexeme_set_left(returned, func_obj_make(env, lexeme_make(NIL), lexeme_get_left(l)));
+	returned = lexeme_make(PAIR);
+	p = pair_make(eval(env, pair_get_left(lexeme_get_data(l))), lexeme_make(NIL));
+	lexeme_set_data(returned, p);
 
 	previous = returned;
-	l = lexeme_get_right(l);
-	while(l != lexeme_make(NIL)) {
-		current = lexeme_make(LIST);
-		lexeme_set_right(previous, current);
-		lexeme_set_left(current, func_obj_make(env, lexeme_make(NIL), lexeme_get_left(l)));
-		l = lexeme_get_right(l);
+	l = pair_get_right(lexeme_get_data(l));
+	while(!checkType(l, NIL)) {
+		current = lexeme_make(PAIR);
+		prevLeft = pair_get_left(lexeme_get_data(previous));
+		p = pair_make(prevLeft, current);
+		lexeme_set_data(previous, p);
+		p = pair_make(eval(env, pair_get_left(lexeme_get_data(l))), lexeme_make(NIL));
+		lexeme_set_data(current, p);
+		l = pair_get_right(lexeme_get_data(l));
 		previous = current;
 	}
 
-	lexeme_set_right(previous, lexeme_make(NIL));
-
 	return returned;
+return returned;
 }
-//static lexeme resolveCalled(lexeme env, lexeme l) {
-//	lexeme called = lexeme_get_left(l);
-//	lexeme_type type ;
-//	if (called == NULL) return NULL;
-//	type = lexeme_get_type(called);
-//	do {
-//		if (type == ID) called = env_lookup(env, called);
-//		if (called == NULL) {
-//			fprintf(stderr, "ERROR: UNBOUND VARIABLE\n");
-//			exit(EXIT_FAILURE);
-//		}
-//		type = lexeme_get_type(called);
-//	} while (type == ID);
-//	return called;
-//}
+
+static lexeme delay(lexeme env, lexeme delayed) {
+	return func_obj_make(env, lexeme_make(NIL), delayed);
+}
+
+static bool checkType(lexeme checked, lexeme_type type) {
+	return lexeme_get_type(checked) == type;
+}
