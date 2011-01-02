@@ -50,7 +50,7 @@ $(OBJDIR)/lexeme.o: $(SRCDIR)/lexeme.c $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigi
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/parser.o: $(SRCDIR)/parser.c $(INCLUDEDIR)/lex.h $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h \
- $(INCLUDEDIR)/parser.h | $(OBJDIR)
+ $(INCLUDEDIR)/parser.h $(INCLUDEDIR)/pair.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/prettyprinter.o: $(SRCDIR)/prettyprinter.c $(INCLUDEDIR)/lex.h $(INCLUDEDIR)/lexeme.h \

@@ -108,6 +108,7 @@ static lexeme importForm() {
 	lexeme importedEnd;
 	lexeme savedPending;
 	lex_stream ls;
+	pair p;
 	lexeme_destroy(match(IMPORT));
 	importedString = match(STRING);
 	lexeme_destroy(match(SEMI));
@@ -121,12 +122,10 @@ static lexeme importForm() {
 	l = savedStream;
 
 	importedEnd = root;
-	while(lexeme_get_right(importedEnd) != NULL) importedEnd = lexeme_get_right(importedEnd);
+	while(lexeme_get_type(pair_get_right(lexeme_get_data(importedEnd))) != NIL) importedEnd = pair_get_right(lexeme_get_data(importedEnd));
 	if (checkUnitList()) {
-		lexeme_set_right(importedEnd, unitList());
-	}
-	else {
-		lexeme_set_right(importedEnd, NULL);
+		p = pair_make(pair_get_left(lexeme_get_data(importedEnd)), unitList());
+		lexeme_set_data(importedEnd, p);
 	}
 	return root;
 }
