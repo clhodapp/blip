@@ -36,7 +36,7 @@ $(OBJDIR)/environment.o: $(SRCDIR)/environment.c $(INCLUDEDIR)/environment.h $(I
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/eval.o: $(SRCDIR)/eval.c $(INCLUDEDIR)/eval.h $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h \
- $(INCLUDEDIR)/environment.h $(INCLUDEDIR)/prettyprinter.h $(INCLUDEDIR)/builtins.h |$(OBJDIR)
+ $(INCLUDEDIR)/environment.h $(INCLUDEDIR)/prettyprinter.h $(INCLUDEDIR)/builtins.h $(INCLUDEDIR)/pair.h |$(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/main.o: $(SRCDIR)/main.c $(INCLUDEDIR)/eval.h $(INCLUDEDIR)/lexeme.h \
