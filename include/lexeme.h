@@ -47,6 +47,7 @@ typedef enum {
 	ID_LIST,
 	TYPE,
 	PAIR,
+	ACTION,
 
 	LEXEME_TYPE_MAX // used as sentinal; Don't put anything after this
 } lexeme_type;

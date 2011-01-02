@@ -99,7 +99,8 @@ static char * naturalNames[LEXEME_TYPE_MAX + 1] = {
 	[BUILTIN_SPACER] = "builtin spacer",
 	[BUILTIN] = "builtin",
 	[TYPE] = "type",
-	[PAIR] = "pair"
+	[PAIR] = "pair",
+	[ACTION] = "action"
 };
 
 static void (*data_destroyers[LEXEME_TYPE_MAX + 1])(void * destroyed) = {

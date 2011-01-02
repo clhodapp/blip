@@ -25,7 +25,8 @@ $(OBJDIR)/bigint.o: $(SRCDIR)/bigint.c $(INCLUDEDIR)/bigint.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/builtins.o: $(SRCDIR)/builtins.c $(INCLUDEDIR)/builtins.h $(INCLUDEDIR)/environment.h \
- $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h $(INCLUDEDIR)/bigfloat.h $(INCLUDEDIR)/eval.h | $(OBJDIR)
+ $(INCLUDEDIR)/lexeme.h $(INCLUDEDIR)/bigint.h $(INCLUDEDIR)/bigfloat.h $(INCLUDEDIR)/eval.h \
+ $(INCLUDEDIR)/pair.h | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/darray.o: $(SRCDIR)/darray.c $(INCLUDEDIR)/darray.h | $(OBJDIR)
