@@ -99,7 +99,7 @@ void pretty_print(lexeme tree) {
 			break;
 		default:
 			printf("BAD LEXEME");
-			lexeme_recursive_destroy(tree);
+			lexeme_destroy(tree);
 			break;
 	}
 }
