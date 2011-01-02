@@ -9,6 +9,7 @@
 #include <lexemetypes.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <pair.h>
 
 struct lex_stream_t{
 	FILE *sourceFile;
@@ -47,7 +48,7 @@ void lex_stream_close(lex_stream l) {
 	lexeme lm = l->unlexed;
 	while (lm != NULL) {
 		lexeme tmp = lm;
-		lm = lexeme_get_right(lm);
+		lm = pair_get_right(lexeme_get_data(lm));
 		lexeme_destroy(tmp);
 	}
 	streamcount--;
@@ -70,8 +71,8 @@ static bool is_id_char(char ch);
 lexeme lex(lex_stream source) {
 	lexeme unlexed = source->unlexed;
 	if (unlexed != NULL) {
-		lexeme returned = unlexed;
-		source->unlexed = lexeme_get_right(unlexed);
+		lexeme returned = pair_get_left(lexeme_get_data(unlexed));
+		source->unlexed = pair_get_right(lexeme_get_data(unlexed));
 		return returned;
 	}
 
@@ -149,8 +150,10 @@ lexeme lex(lex_stream source) {
 }
 
 void unlex(lex_stream target, lexeme lm) {
-	lexeme_set_right(lm, target->unlexed);
-	target->unlexed = lm;
+	lexeme r = lexeme_make(PAIR);
+	pair p = pair_make(lm, target->unlexed);
+	lexeme_set_data(r, p);
+	target->unlexed = r;
 }
 
 bigint lex_stream_get_linenum(lex_stream l) {
