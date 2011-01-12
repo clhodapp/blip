@@ -67,9 +67,9 @@ static lexeme eval_return(lexeme env, lexeme l) {
 
 static lexeme simplifyCall(lexeme env, lexeme call) {
 	pair p1 = lexeme_get_data(call);
-	pair p2 = lexeme_get_data(pair_get_right(p1));
+	pair p2;
 	lexeme rawCalled = pair_get_left(p1);
-	lexeme callArgs = pair_get_right(p2);
+	lexeme callArgs = pair_get_right(p1);
 	lexeme realCalled = eval(env, rawCalled);
 	lexeme callParams;
 	lexeme newArgs;
@@ -95,7 +95,7 @@ static lexeme simplifyCall(lexeme env, lexeme call) {
 
 static lexeme eval_unitlist(lexeme env, lexeme l) {
 	lexeme left;
-	while (l != NULL) {
+	while (l != lexeme_make(NIL)) {
 		left = eval(env, pair_get_left(lexeme_get_data(l)));
 		if (lexeme_get_type(pair_get_left(lexeme_get_data(l))) == RETURN) return left;
 		l = pair_get_right(lexeme_get_data(l));
@@ -190,21 +190,24 @@ static void eval_args(lexeme env, lexeme params, lexeme args, lexeme *retParamLi
 		currentParam = pair_get_left(lexeme_get_data(params));
 		currentArg = pair_get_left(lexeme_get_data(args));
 		if (checkType(currentParam, AMP)) {
-			currentParam = pair_get_left(lexeme_get_data(currentParam));
+			newParam = pair_get_left(lexeme_get_data(currentParam));
 			if (lexeme_get_type(currentParam) == DOT) {
-				currentParam = pair_get_left(lexeme_get_data(currentParam));
+				newParam = pair_get_left(lexeme_get_data(currentParam));
 				newArg = functionalize_and_listify(env, args);
+				assert(lexeme_get_type(newArg) != NIL);
 			}
 			else {
 				newArg = eval_and_listify(env, args);
+				assert(lexeme_get_type(newArg) != NIL);
 			}
 			params = lexeme_make(NIL);
 			args = lexeme_make(NIL);
 		}
 		else {
 			if (checkType(currentParam, DOT)) {
-				newParam = pair_get_left(lexeme_get_data(params));
+				newParam = pair_get_left(lexeme_get_data(currentParam));
 				newArg = delay(env, pair_get_left(lexeme_get_data(args)));
+				assert(lexeme_get_type(newParam) == ID);
 			}
 			else {
 				newParam = currentParam;
@@ -291,7 +294,7 @@ static lexeme functionalize_and_listify(lexeme env, lexeme l) {
 	if (l == lexeme_make(NIL)) return lexeme_make(NIL);
 
 	returned = lexeme_make(PAIR);
-	p = pair_make(eval(env, pair_get_left(lexeme_get_data(l))), lexeme_make(NIL));
+	p = pair_make(delay(env, pair_get_left(lexeme_get_data(l))), lexeme_make(NIL));
 	lexeme_set_data(returned, p);
 
 	previous = returned;

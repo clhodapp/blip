@@ -10,6 +10,7 @@
 #include <eval.h>
 #include <string.h>
 #include <pair.h>
+#include <assert.h>
 
 extern lexeme func_obj_make(lexeme env, lexeme params, lexeme body);
 
@@ -170,9 +171,9 @@ lexeme builtin_get_params(lexeme b) {
 }
 
 static void register_builtin(lexeme env, char * name, lexeme (*action)(lexeme), lexeme paramList) {
+	lexeme registered = lexeme_make(BUILTIN);
 	lexeme actionLexeme = lexeme_make(ACTION);
 	lexeme id = lexeme_make(ID);
-	lexeme registered = lexeme_make(BUILTIN);
 	lexeme_set_data(actionLexeme, action);
 	pair p = pair_make(actionLexeme, paramList);
 	lexeme_set_data(id, name);
@@ -181,8 +182,11 @@ static void register_builtin(lexeme env, char * name, lexeme (*action)(lexeme), 
 }
 
 static lexeme out(lexeme args) {
+	if (lexeme_get_type(args) == NIL) {
+		return  lexeme_make(NIL);
+	}
 	args = pair_get_left(lexeme_get_data(args));
-	while (args != lexeme_make(NIL)) {
+	while (lexeme_get_type(args) != NIL) {
 		printf("%s", lexeme_to_string(pair_get_left(lexeme_get_data(args))));
 		args = pair_get_right(lexeme_get_data(args));
 	}
@@ -212,11 +216,12 @@ static lexeme err(lexeme args) {
 }
 
 static lexeme list(lexeme args) {
+	if (lexeme_get_type(args) == NIL) return args;
 	return pair_get_left(lexeme_get_data(args));
 }
 
 static lexeme head(lexeme args) {
-	return pair_get_left(lexeme_get_data(args));
+	return pair_get_left(lexeme_get_data(pair_get_left(lexeme_get_data(args))));
 }
 
 static lexeme tail(lexeme args) {
@@ -390,6 +395,7 @@ lexeme append(lexeme args) {
 			lexeme_set_data(currentItem, p);
 			currentItem = pair_get_right(p);
 			p = pair_make(pair_get_left(lexeme_get_data(first)), retSecond);
+			lexeme_set_data(currentItem, p);
 		}
 	}
 	else {
@@ -594,14 +600,14 @@ static lexeme apply(lexeme args) {
 	args = pair_get_left(lexeme_get_data(args));
 
 
-	if (args != lexeme_make(NIL)) {
+	if (lexeme_get_type(args) != NIL) {
 		callArgList = lexeme_make(ARGLIST);
 		p = pair_make(pair_get_left(lexeme_get_data(args)), lexeme_make(NIL));
 		lexeme_set_data(callArgList, p);
 		currentArg = callArgList;
 		args = pair_get_right(lexeme_get_data(args));
 	}
-	while (args != lexeme_make(NIL)) {
+	while (lexeme_get_type(args) != NIL) {
 		newArg = lexeme_make(ARGLIST);
 		p = pair_make(pair_get_left(lexeme_get_data(args)), lexeme_make(NIL));
 		lexeme_set_data(newArg, p);
@@ -666,8 +672,9 @@ static lexeme build_if_list() {
 	dot = lexeme_make(DOT);
 	newParam = lexeme_make(ID);
 	p = pair_make(dot, lexeme_make(NIL));
-	lexeme_set_data(newParam, p);
-	p = pair_make(dot, lexeme_make(NIL));
+	lexeme_set_data(newParamList, p);
+
+	p = pair_make(newParam, lexeme_make(NIL));
 	lexeme_set_data(dot, p);
 	lexeme_set_data(newParam, "ifFalse");
 
@@ -710,7 +717,7 @@ static lexeme build_less_list() {
 
 	newParamList = lexeme_make(PAIR);
 	newParam = lexeme_make(ID);
-	p = pair_make(currentParamList, newParam);
+	p = pair_make(newParam, currentParamList);
 	lexeme_set_data(newParamList, p);
 	lexeme_set_data(newParam, "x2");
 
@@ -733,7 +740,7 @@ static lexeme build_greater_list() {
 
 	newParamList = lexeme_make(PAIR);
 	newParam = lexeme_make(ID);
-	p = pair_make(currentParamList, newParam);
+	p = pair_make(newParam, currentParamList);
 	lexeme_set_data(newParamList, p);
 	lexeme_set_data(newParam, "x2");
 

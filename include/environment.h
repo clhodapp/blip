@@ -13,5 +13,7 @@ void env_insert(lexeme env, lexeme id, lexeme value);
 lexeme env_alter(lexeme env, lexeme id, lexeme value);
 lexeme env_remove(lexeme env, lexeme id);
 void env_destroy(lexeme env);
+lexeme env_id_list(lexeme env); // get first id for an environment
+lexeme env_value_list(lexeme env); // get first value for environment
 
 #endif

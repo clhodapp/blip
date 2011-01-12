@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pair.h>
+#include <environment.h>
 
 struct lexeme_t;
 static char * naturalNames[];
@@ -49,10 +50,12 @@ static char * to_string_cbrace(lexeme l);
 static char * to_string_lambda(lexeme l);
 static char * to_string_semi(lexeme l);
 static char * to_string_pair(lexeme l);
+static char * to_string_env(lexeme l);
 
 static void i_bigint_destroy(void *);
 static void i_bigfloat_destroy(void *);
 static void i_pair_destroy(void *);
+static char * sappend(char * destination, size_t dest_size, char * source, size_t source_size);
 
 struct lexeme_t {
 	lexeme_type type;
@@ -100,13 +103,15 @@ static char * naturalNames[LEXEME_TYPE_MAX + 1] = {
 	[BUILTIN] = "builtin",
 	[TYPE] = "type",
 	[PAIR] = "pair",
-	[ACTION] = "action"
+	[ACTION] = "action",
+	[ENV] = "environment"
 };
 
 static void (*data_destroyers[LEXEME_TYPE_MAX + 1])(void * destroyed) = {
 	[INT] = &i_bigint_destroy,
 	[DEC] = &i_bigfloat_destroy,
-	[PAIR] = &i_pair_destroy
+	[PAIR] = &i_pair_destroy,
+	[ENV] = &i_pair_destroy
 };
 
 void i_bigint_destroy(void * destroyed) {
@@ -192,7 +197,8 @@ static char * (*stringifiers[LEXEME_TYPE_MAX + 1])(lexeme l) = {
 	[RETURN] = &to_string_return,
 	[BIND] = &to_string_bind,
 	[SEMI] = &to_string_semi,
-	[UNITLIST] = &to_string_pair
+	[UNITLIST] = &to_string_pair,
+	[ENV] = &to_string_env
 
 };
 
@@ -447,3 +453,54 @@ static char * to_string_type(lexeme l) {
 	lexeme_type type = *((lexeme_type *) lexeme_get_data(l));
 	return naturalNames[type];
 }
+
+static char * to_string_env(lexeme l) {
+	lexeme currentIdList;
+	lexeme currentValueList;
+	lexeme currentId;
+	lexeme currentValue;
+	size_t appendLength;
+	size_t size = 2;
+	char * appended;
+	char * returned = malloc(2 * sizeof(char)); // null-terminated string "("
+	strncpy(returned, "{", 1);
+	while (lexeme_get_type(l) != NIL) {
+		currentIdList = env_id_list(l);
+		currentValueList = env_value_list(l);
+
+		returned = sappend(returned, size, "(", 2);
+		size = size + 1;
+
+		while (lexeme_get_type(currentIdList) != NIL) {
+			currentId = pair_get_left(lexeme_get_data(currentIdList));
+			currentValue = pair_get_left(lexeme_get_data(currentValueList));
+			appended = lexeme_to_string(currentId);
+			appendLength = strlen(appended);
+			returned = sappend(returned, size, appended, appendLength);
+			size = size + appendLength;
+			returned = sappend(returned, size, ": ", 3);
+			size = size + 2;
+			appended = lexeme_to_string(currentValue);
+			appendLength = strlen(appended);
+			returned = sappend(returned, size, appended, appendLength);
+			size = size + appendLength;
+			returned = sappend(returned, size, ", ", 3);
+			size = size + 2;
+			currentIdList = pair_get_right(lexeme_get_data(currentIdList));
+			currentValueList = pair_get_right(lexeme_get_data(currentValueList));
+		}
+
+		returned = sappend(returned, size, ")", 2);
+		size = size + 1;
+		l = env_get_parent(l);
+	}
+	returned = sappend(returned, size, "}", 2);
+	size = size + 1;
+	return returned;
+}
+
+static char * sappend(char * destination, size_t dest_size, char * source, size_t source_size) {
+	destination = realloc(destination, dest_size + source_size);
+	strncpy((destination + dest_size - 1), source, source_size);
+	return destination;
+};

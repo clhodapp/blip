@@ -4,10 +4,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <pair.h>
+#include <assert.h>
 
 static void find(lexeme env, lexeme f, lexeme *id, lexeme *value);
-static lexeme env_id_list(lexeme env); // get first id for an environment
-static lexeme env_value_list(lexeme env); // get first value for environment
 static void lists_set_id(lexeme env, lexeme id); // set first id
 static void lists_set_value(lexeme env, lexeme val); // set first value
 static lexeme lists_get_id(lexeme lists);
@@ -17,7 +16,7 @@ static void env_set_value_list(lexeme env, lexeme valList);
 static lexeme env_get_lists(lexeme env);
 
 lexeme env_make() {
-	lexeme e = lexeme_make(PAIR); // the extended environment
+	lexeme e = lexeme_make(ENV); // the extended environment
 	lexeme l = lexeme_make(PAIR); // the lists for the environment (id, value)
 	pair top = pair_make(l, lexeme_make(NIL));
 	pair bottom = pair_make(lexeme_make(NIL), lexeme_make(NIL));
@@ -29,13 +28,13 @@ lexeme env_make() {
 
 lexeme env_get_parent(lexeme env) {
 	pair p = (pair) lexeme_get_data(env);
-	return pair_get_left(p);
+	return pair_get_right(p);
 }
 
 lexeme env_extend(lexeme env, lexeme idList, lexeme valueList) {
-	lexeme e = lexeme_make(PAIR); // the extended environment
+	lexeme e = lexeme_make(ENV); // the extended environment
 	lexeme l = lexeme_make(PAIR); // the lists for the environment (id, value)
-	pair top = pair_make(env, l);
+	pair top = pair_make(l, env);
 	pair bottom = pair_make(idList, valueList);
 
 	lexeme_set_data(e, top);
@@ -139,7 +138,7 @@ static void find(lexeme env, lexeme f, lexeme *id, lexeme *value) {
 
 	while (lexeme_get_type(env) != NIL) {
 		currentIdPairLexeme = env_id_list(env);
-		currentValuePairLexeme = env_id_list(env);
+		currentValuePairLexeme = env_value_list(env);
 		while (lexeme_get_type(currentIdPairLexeme) != NIL) {
 			currentIdPair = (pair) lexeme_get_data(currentIdPairLexeme);
 			currentId = pair_get_left(currentIdPair); 
@@ -160,21 +159,18 @@ static void find(lexeme env, lexeme f, lexeme *id, lexeme *value) {
 	*value = lexeme_make(NIL);
 }
 
-static lexeme env_id_list(lexeme env) {
-	pair p = (pair) lexeme_get_data(env);
-	lexeme lists = pair_get_right(p);
+lexeme env_id_list(lexeme env) {
+	lexeme lists = env_get_lists(env);
 	return lists_get_id(lists);
 }
 
-static lexeme env_value_list(lexeme env) {
-	pair p = (pair) lexeme_get_data(env);
-	lexeme lists = pair_get_right(p);
+lexeme env_value_list(lexeme env) {
+	lexeme lists = env_get_lists(env);
 	return lists_get_value(lists);
 }
 
 static void env_set_id_list(lexeme env, lexeme id) {
-	pair p = lexeme_get_data(env);
-	lexeme lists = pair_get_right(p);
+	lexeme lists = env_get_lists(env);
 	lists_set_id(lists, id);
 }
 
@@ -184,23 +180,27 @@ static void env_set_value_list(lexeme env, lexeme value) {
 }
 
 static void lists_set_id(lexeme lists, lexeme id) {
+	assert(lists != NULL);
 	lexeme value = lists_get_value(lists);
 	pair p = pair_make(id, value);
 	lexeme_set_data(lists, p);
 }
 
 static void lists_set_value(lexeme lists, lexeme value) {
+	assert(lists != NULL);
 	lexeme id = lists_get_id(lists);
 	pair p = pair_make(id, value);
 	lexeme_set_data(lists, p);
 }
 
 static lexeme lists_get_id(lexeme lists) {
+	assert(lists != NULL);
 	pair p = lexeme_get_data(lists);
 	return pair_get_left(p);
 }
 
 static lexeme lists_get_value(lexeme lists) {
+	assert(lists != NULL);
 	pair p = lexeme_get_data(lists);
 	return pair_get_right(p);
 }

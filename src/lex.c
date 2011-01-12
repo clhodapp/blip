@@ -40,13 +40,13 @@ lex_stream lex_stream_open_file(FILE * f) {
 	lex_stream r = (lex_stream) malloc(sizeof(struct lex_stream_t));
 	r->sourceFile = f;
 	r->linenum = bigint_make(1);
-	r->unlexed = NULL;
+	r->unlexed = lexeme_make(NIL);
 	return r;
 }
 
 void lex_stream_close(lex_stream l) {
 	lexeme lm = l->unlexed;
-	while (lm != NULL) {
+	while (lm != lexeme_make(NIL)) {
 		lexeme tmp = lm;
 		lm = pair_get_right(lexeme_get_data(lm));
 		lexeme_destroy(tmp);
@@ -70,7 +70,7 @@ static bool is_id_char(char ch);
 
 lexeme lex(lex_stream source) {
 	lexeme unlexed = source->unlexed;
-	if (unlexed != NULL) {
+	if (unlexed != lexeme_make(NIL)) {
 		lexeme returned = pair_get_left(lexeme_get_data(unlexed));
 		source->unlexed = pair_get_right(lexeme_get_data(unlexed));
 		return returned;
