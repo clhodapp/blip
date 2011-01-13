@@ -163,11 +163,11 @@ void register_builtins(lexeme env) {
 }
 
 lexeme (*builtin_get_action(lexeme b))(lexeme l) {
-	return lexeme_get_data(pair_get_left(lexeme_get_data(b)));
+	return lexeme_get_data(pair_get_right(lexeme_get_data(b)));
 }
 
 lexeme builtin_get_params(lexeme b) {
-	return pair_get_right(lexeme_get_data(b));
+	return pair_get_left(lexeme_get_data(b));
 }
 
 static void register_builtin(lexeme env, char * name, lexeme (*action)(lexeme), lexeme paramList) {
@@ -175,7 +175,7 @@ static void register_builtin(lexeme env, char * name, lexeme (*action)(lexeme), 
 	lexeme actionLexeme = lexeme_make(ACTION);
 	lexeme id = lexeme_make(ID);
 	lexeme_set_data(actionLexeme, action);
-	pair p = pair_make(actionLexeme, paramList);
+	pair p = pair_make(paramList, actionLexeme);
 	lexeme_set_data(id, name);
 	lexeme_set_data(registered, p);
 	env_insert(env, id, registered);

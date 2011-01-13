@@ -24,10 +24,11 @@ static lexeme func_obj_params(lexeme f);
 static lexeme func_obj_body(lexeme f);
 static lexeme functionalize_and_listify(lexeme env, lexeme l);
 static lexeme eval_and_listify(lexeme env, lexeme l);
-static lexeme simplifyCall(lexeme env, lexeme call);
+static lexeme simplify_call(lexeme env, lexeme call);
 static void eval_args(lexeme env, lexeme paramList, lexeme argList, lexeme *retParamList, lexeme *retArgList);
 static lexeme delay(lexeme env, lexeme delayed);
 static bool checkType(lexeme checked, lexeme_type type);
+static lexeme reverse(lexeme list);
 //static lexeme resolveCalled(lexeme env, lexeme l);
 
 lexeme (*actions [LEXEME_TYPE_MAX])(lexeme env, lexeme l) = {
@@ -60,37 +61,45 @@ static lexeme eval_return(lexeme env, lexeme l) {
 	pair p = lexeme_get_data(l);
 	lexeme body = pair_get_left(p);
 	if (lexeme_get_type(body) == CALL) {
-		return simplifyCall(env, body);
+		return simplify_call(env, body);
 	}
 	return eval(env, body);
 }
 
-static lexeme simplifyCall(lexeme env, lexeme call) {
-	pair p1 = lexeme_get_data(call);
-	pair p2;
-	lexeme rawCalled = pair_get_left(p1);
-	lexeme callArgs = pair_get_right(p1);
+static lexeme simplify_call(lexeme env, lexeme call) {
+	pair callPair = lexeme_get_data(call);
+	pair calledPair;
+	lexeme rawCalled = pair_get_left(callPair);
+	lexeme callArgs = pair_get_right(callPair);
 	lexeme realCalled = eval(env, rawCalled);
-	lexeme callParams;
+	lexeme calledParams;
 	lexeme newArgs;
 	lexeme newParams;
 	lexeme newCall;
 	lexeme newCalled;
+	lexeme calledRight;
+
+	calledPair = lexeme_get_data(realCalled);
+	calledParams = pair_get_left(calledPair);
+	calledRight = pair_get_right(calledPair);
+
+	newCall = lexeme_make(CALL);
+	newCalled = lexeme_make(lexeme_get_type(realCalled));
+
+	eval_args(env, calledParams, callArgs, &newParams, &newArgs);
+
 	if (lexeme_get_type(realCalled) == BUILTIN) {
-		return eval(env, call);
+		newParams = reverse(newParams);
+		newArgs = reverse(newArgs);
 	}
-	else {
-		p2 = lexeme_get_data(realCalled);
-		callParams = pair_get_left(p2);
-		newCall = lexeme_make(CALL);
-		newCalled = lexeme_make(lexeme_get_type(realCalled));
-		eval_args(env, callParams, callArgs, &newParams, &newArgs);
-		p1 = pair_make(newCalled, newArgs);
-		p2 = pair_make(newParams, pair_get_right(lexeme_get_data(realCalled)));
-		lexeme_set_data(newCall, p1);
-		lexeme_set_data(newCalled, p2);
-		return newCall;
-	}
+
+	callPair = pair_make(newCalled, newArgs);
+	calledPair = pair_make(newParams, calledRight);
+
+	lexeme_set_data(newCall, callPair);
+	lexeme_set_data(newCalled, calledPair);
+
+	return newCall;
 }
 
 static lexeme eval_unitlist(lexeme env, lexeme l) {
@@ -151,8 +160,16 @@ static lexeme eval_call(lexeme env, lexeme l) {
 			params = func_obj_params(called);
 			body = func_obj_body(called);
 			callEnv = eval_args_and_extend(env, funcDefEnv, params, args);
-			l = eval(callEnv, body);
+			if (lexeme_get_type(body) == CALL) {
+				l = simplify_call(callEnv, body);
+			}
+			else {
+				l = eval(callEnv, body);
+			}
 			assert(l != NULL);
+		}
+		if (lexeme_get_type(l) == CALL) {
+			assert(lexeme_get_type(called) == FUNC_OBJ || lexeme_get_type(called) == BUILTIN);
 		}
 	}
 	assert(lexeme_get_type(l) != CALL);
@@ -320,4 +337,16 @@ static lexeme delay(lexeme env, lexeme delayed) {
 
 static bool checkType(lexeme checked, lexeme_type type) {
 	return lexeme_get_type(checked) == type;
+}
+
+static lexeme reverse(lexeme list) {
+	lexeme newList = lexeme_make(NIL);
+	pair p;
+	while (lexeme_get_type(list) != NIL) {
+		p = pair_make(pair_get_left(lexeme_get_data(list)), newList);
+		newList = lexeme_make(PAIR);
+		lexeme_set_data(newList, p);
+		list = pair_get_right(lexeme_get_data(list));
+	}
+	return newList;
 }
