@@ -1,0 +1,4 @@
+At this time, the build process is rather simple and the only dependencies are a "make" program and a c99 compiler:
+Type "make blip" or simply "make" at the top level (the level that this readme is on) to build.
+A binary is generated in a "bin" directory, which will be created if it does not exist.
+Type "make clean" to cleanup the directory, removing all generated files and restoring a clean source tree.
