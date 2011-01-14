@@ -113,7 +113,7 @@ static lexeme importForm() {
 	importedString = match(STRING);
 	lexeme_destroy(match(SEMI));
 	lex_stream savedStream = l;
-	ls = lex_stream_open((char *) lexeme_get_data(importedString));
+	ls = lex_stream_open_path((char *) lexeme_get_data(importedString));
 	savedPending = pending;
 	root = parse(ls);
 	lexeme_destroy(importedString);

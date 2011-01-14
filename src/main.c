@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 	eval_init(env);
 
 	if (inPath != NULL) {
-		source = lex_stream_open(inPath);
+		source = lex_stream_open_path(inPath);
 	}
 	if (mode == SCAN_MODE) {
 		lex_loop(source);

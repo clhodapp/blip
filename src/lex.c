@@ -11,15 +11,26 @@
 #include <stddef.h>
 #include <pair.h>
 
+enum ls_type {
+	S_FILE,
+	S_STRING
+};
+
+union ls_source {
+	FILE *file;
+	char *string[2];
+};
+
 struct lex_stream_t{
-	FILE *sourceFile;
+	union ls_source source;
+	enum ls_type type;
 	bigint linenum;
 	lexeme unlexed;
 };
 
 static void lex_stream_advance_linenum(lex_stream l);
 
-lex_stream lex_stream_open(char *path) {
+lex_stream lex_stream_open_path(char *path) {
 	FILE * source = fopen(path, "r");
 
 	if (source == NULL) {
@@ -32,7 +43,18 @@ lex_stream lex_stream_open(char *path) {
 lex_stream lex_stream_open_file(FILE * f) {
 
 	lex_stream r = (lex_stream) malloc(sizeof(struct lex_stream_t));
-	r->sourceFile = f;
+	r->source.file = f;
+	r->type = S_FILE;
+	r->linenum = bigint_make(1);
+	r->unlexed = lexeme_make(NIL);
+	return r;
+}
+
+lex_stream lex_stream_open_string(char * c) {
+	lex_stream r = (lex_stream) malloc(sizeof(struct lex_stream_t));
+	r->source.string[0] = c;
+	r->source.string[1] = c;
+	r->type = S_STRING;
 	r->linenum = bigint_make(1);
 	r->unlexed = lexeme_make(NIL);
 	return r;
@@ -45,7 +67,12 @@ void lex_stream_close(lex_stream l) {
 		lm = pair_get_right(lexeme_get_data(lm));
 		lexeme_destroy(tmp);
 	}
-	fclose(l->sourceFile);
+	if (l->type == S_FILE) {
+		fclose(l->source.file);
+	}
+	else {
+		free(l->source.string[0]);
+	}
 	bigint_destroy(l->linenum);
 	free(l);
 }
@@ -157,11 +184,15 @@ void lex_stream_advance_linenum(lex_stream l) {
 }
 
 char lex_stream_getc(lex_stream l) {
-	return getc(l->sourceFile);
+	return (l->type == S_FILE) ?
+		getc(l->source.file) :
+		*(l->source.string[1]++);
 }
 
 char lex_stream_ungetc(char ungotten, lex_stream l) {
-	return ungetc(ungotten, l->sourceFile);
+	return (l->type == S_FILE) ?
+	ungetc(ungotten, l->source.file) :
+	(*(--l->source.string[1]) = ungotten);
 }
 
 static void remove_whitespace(lex_stream source) {
