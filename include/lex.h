@@ -9,6 +9,7 @@ typedef struct lex_stream_t *lex_stream;
 
 lex_stream lex_stream_open_path(char *path);
 lex_stream lex_stream_open_file(FILE * f);
+lex_stream lex_stream_open_string(char * s);
 void lex_stream_close(lex_stream);
 bigint lex_stream_get_linenum(lex_stream l);
 char lex_stream_getc(lex_stream l);

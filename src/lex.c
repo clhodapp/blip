@@ -50,7 +50,7 @@ lex_stream lex_stream_open_file(FILE * f) {
 	return r;
 }
 
-lex_stream lex_stream_open_string(char * c) {
+lex_stream lex_stream_open_string(char * s) {
 	lex_stream r = (lex_stream) malloc(sizeof(struct lex_stream_t));
 	r->source.string[0] = c;
 	r->source.string[1] = c;
