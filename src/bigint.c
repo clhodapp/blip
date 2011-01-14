@@ -90,6 +90,32 @@ bigint bigint_mod(bigint i1, bigint i2) {
 	return r;
 }
 
+bigint bigint_inc(bigint i) {
+	bigint r = malloc(sizeof(struct bigint_t));
+	if (i->sign == BIGINT_POS) {
+		r->sign = BIGINT_POS;
+		r->data = i->data + 1;
+	}
+	else {
+		r->sign = BIGINT_NEG;
+		r->data = i->data - 1;
+	}
+	return r;
+}
+
+bigint bigint_dec(bigint i) {
+	bigint r = malloc(sizeof(struct bigint_t));
+	if (i->sign == BIGINT_NEG || i->data == 0) {
+		r->sign = BIGINT_NEG;
+		r->data = i->data + 1;
+	}
+	else {
+		r->sign = BIGINT_POS;
+		r->data = i->data - 1;
+	}
+	return r;
+}
+
 bool bigint_greater(bigint i1, bigint i2) {
 	if (i1->sign == BIGINT_POS && i2->sign == BIGINT_NEG) {
 		return true;

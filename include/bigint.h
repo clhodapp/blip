@@ -19,6 +19,8 @@ bigint bigint_sub(bigint i1, bigint i2);
 bigint bigint_mult(bigint i1, bigint i2);
 bigint bigint_div(bigint i1, bigint i2);
 bigint bigint_mod(bigint i1, bigint i2);
+bigint bigint_inc(bigint i);
+bigint bigint_dec(bigint i);
 bool bigint_greater(bigint i1, bigint i2);
 bool bigint_less(bigint i1, bigint i2);
 bool bigint_equal(bigint i1, bigint i2);
