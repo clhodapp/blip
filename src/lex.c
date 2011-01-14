@@ -17,8 +17,6 @@ struct lex_stream_t{
 	lexeme unlexed;
 };
 
-static bigint one;
-static int streamcount = 0;
 static void lex_stream_advance_linenum(lex_stream l);
 
 lex_stream lex_stream_open(char *path) {
@@ -33,10 +31,6 @@ lex_stream lex_stream_open(char *path) {
 
 lex_stream lex_stream_open_file(FILE * f) {
 
-	if (streamcount == 0) {
-		one = bigint_make(1);
-	}
-	streamcount++;
 	lex_stream r = (lex_stream) malloc(sizeof(struct lex_stream_t));
 	r->sourceFile = f;
 	r->linenum = bigint_make(1);
@@ -51,13 +45,9 @@ void lex_stream_close(lex_stream l) {
 		lm = pair_get_right(lexeme_get_data(lm));
 		lexeme_destroy(tmp);
 	}
-	streamcount--;
 	fclose(l->sourceFile);
 	bigint_destroy(l->linenum);
 	free(l);
-	if (streamcount==0) {
-		bigint_destroy(one);
-	}
 }
 
 static void remove_whitespace(lex_stream source);
@@ -161,7 +151,7 @@ bigint lex_stream_get_linenum(lex_stream l) {
 }
 
 void lex_stream_advance_linenum(lex_stream l) {
-	bigint newLineNum = bigint_add(l->linenum, one);
+	bigint newLineNum = bigint_inc(l->linenum);
 	bigint_destroy(l->linenum);
 	l->linenum = newLineNum;
 }
