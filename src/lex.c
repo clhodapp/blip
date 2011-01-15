@@ -52,8 +52,8 @@ lex_stream lex_stream_open_file(FILE * f) {
 
 lex_stream lex_stream_open_string(char * s) {
 	lex_stream r = (lex_stream) malloc(sizeof(struct lex_stream_t));
-	r->source.string[0] = c;
-	r->source.string[1] = c;
+	r->source.string[0] = s;
+	r->source.string[1] = s;
 	r->type = S_STRING;
 	r->linenum = bigint_make(1);
 	r->unlexed = lexeme_make(NIL);
