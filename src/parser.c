@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pair.h>
+#include <string.h>
 
 static lex_stream l;
 static lexeme pending;
@@ -53,6 +54,22 @@ lexeme parse(lex_stream ls) {
 	advance();
 	r = program();
 	unlex(ls, pending);
+	return r;
+}
+
+lexeme make_paramlist(char * listString) {
+	size_t size = strlen(listString);
+	char * temp = malloc(++size * sizeof(char));
+	lex_stream prevL = l;
+	lexeme prevPending = pending;
+	lexeme r;
+	strncpy(temp, listString, size);
+	l = lex_stream_open_string(temp);
+	advance();
+	r = paramList();
+	lex_stream_close(l);
+	l = prevL;
+	pending = prevPending;
 	return r;
 }
 
