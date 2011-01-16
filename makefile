@@ -4,7 +4,11 @@ SRCDIR = ./src
 OBJDIR = ./obj
 INCLUDEDIR = ./include
 BINDIR = ./bin
-CFLAGS = -Wall -std=c99 -o2 -I $(INCLUDEDIR)
+ifdef DEBUG
+	CFLAGS = -Wall -std=c99 -o2 -I $(INCLUDEDIR) -g
+else
+	CFLAGS = -Wall -std=c99 -o2 -I $(INCLUDEDIR)
+endif
 
 
 .SUFFIXES:
