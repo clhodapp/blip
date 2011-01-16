@@ -11,6 +11,7 @@
 #include <string.h>
 #include <pair.h>
 #include <assert.h>
+#include <parser.h>
 
 extern lexeme func_obj_make(lexeme env, lexeme params, lexeme body);
 
@@ -37,30 +38,6 @@ static lexeme str_ref(lexeme args);
 static lexeme append(lexeme args);
 static lexeme apply_call(lexeme operator, lexeme callArgList);
 static void register_builtin(lexeme env, char * name, lexeme (*action)(lexeme), lexeme paramList);
-static lexeme build_list_list();
-static lexeme build_type_list();
-static lexeme build_head_list();
-static lexeme build_sref_list();
-static lexeme build_tail_list();
-static lexeme build_apply_list();
-static lexeme build_less_list();
-static lexeme build_greater_list();
-static lexeme build_out_list();
-static lexeme build_err_list();
-static lexeme build_plus_list();
-static lexeme build_minus_list();
-static lexeme build_div_list();
-static lexeme build_times_list();
-static lexeme build_equal_list();
-static lexeme build_generic_list();
-static lexeme build_out_list();
-static lexeme build_nil_list();
-static lexeme build_plus_list();
-static lexeme build_if_list();
-static lexeme build_equal_list();
-static lexeme build_append_list();
-static lexeme build_cons_list();
-static lexeme build_generic_list(char * name);
 
 static lexeme addInt(lexeme addend1, lexeme addend2);
 static lexeme addDec(lexeme addend1, lexeme addend2);
@@ -122,44 +99,25 @@ bool (* equalOps [LEXEME_TYPE_MAX + 1])(lexeme arg1, lexeme arg2) = {
 };
 
 void register_builtins(lexeme env) {
-	lexeme outList = build_out_list();
-	lexeme errList = build_err_list();
-	lexeme plusList = build_plus_list();
-	lexeme minusList = build_minus_list();
-	lexeme timesList = build_times_list();
-	lexeme divList = build_div_list();
-	lexeme greaterList = build_greater_list();
-	lexeme lessList = build_less_list();
-	lexeme equalList = build_equal_list();
-	lexeme listList = build_list_list();
-	lexeme ifList = build_if_list();
-	lexeme headList = build_head_list();
-	lexeme tailList = build_tail_list();
-	lexeme nilList = build_nil_list();
-	lexeme applyList = build_apply_list();
-	lexeme typeList = build_type_list();
-	lexeme consList = build_cons_list();
-	lexeme appendList = build_append_list();
-	lexeme srefList = build_sref_list();
-	register_builtin(env, "out", &out, outList);
-	register_builtin(env, "err", &err, errList);
-	register_builtin(env, "+", &plus, plusList);
-	register_builtin(env, "-", &minus, minusList);
-	register_builtin(env, "*", &multiply, timesList);
-	register_builtin(env, "/", &divide, divList);
-	register_builtin(env, "greater?", &greater, greaterList);
-	register_builtin(env, "less?", &less, lessList);
-	register_builtin(env, "list", &list, listList);
-	register_builtin(env, "equal?", &equal, equalList);
-	register_builtin(env, "if", &ifFunc, ifList);
-	register_builtin(env, "head", &head, headList);
-	register_builtin(env, "tail", &tail, tailList);
-	register_builtin(env, "apply", &apply, applyList);
-	register_builtin(env, "nil?", &nil, nilList);
-	register_builtin(env, "type", &type, typeList);
-	register_builtin(env, "cons", &cons, consList);
-	register_builtin(env, "append", &append, appendList);
-	register_builtin(env, "sref", &str_ref, srefList);
+	register_builtin(env, "out", &out, make_paramlist("& printed"));
+	register_builtin(env, "err", &err, make_paramlist("& printed"));
+	register_builtin(env, "+", &plus, make_paramlist("& added"));
+	register_builtin(env, "-", &minus, make_paramlist("& args"));
+	register_builtin(env, "*", &multiply, make_paramlist("& multiplied"));
+	register_builtin(env, "/", &divide, make_paramlist("& args"));
+	register_builtin(env, "greater?", &greater, make_paramlist("x1, x2"));
+	register_builtin(env, "less?", &less, make_paramlist("x1, x2"));
+	register_builtin(env, "list", &list, make_paramlist("& listed"));
+	register_builtin(env, "equal?", &equal, make_paramlist("& tested"));
+	register_builtin(env, "if", &ifFunc, make_paramlist("conditional, . ifTrue, . ifFalse"));
+	register_builtin(env, "head", &head, make_paramlist("list"));
+	register_builtin(env, "tail", &tail, make_paramlist("list"));
+	register_builtin(env, "apply", &apply, make_paramlist("operator, operands"));
+	register_builtin(env, "nil?", &nil, make_paramlist("tested"));
+	register_builtin(env, "type", &type, make_paramlist("arg"));
+	register_builtin(env, "cons", &cons, make_paramlist("head, tail"));
+	register_builtin(env, "append", &append, make_paramlist("first, second"));
+	register_builtin(env, "sref", &str_ref, make_paramlist("index, str"));
 }
 
 lexeme (*builtin_get_action(lexeme b))(lexeme l) {
@@ -631,230 +589,6 @@ static lexeme apply_call(lexeme operator, lexeme callArgList) {
 static bool equalDefault(lexeme arg1, lexeme arg2) {
 	return arg1==arg2;
 }
-
-
-static lexeme build_out_list() {
-	return build_generic_list("printed");
-}
-
-static lexeme build_err_list() {
-	return build_generic_list("printed");
-}
-
-static lexeme build_plus_list() {
-	return build_generic_list("added");
-}
-
-static lexeme build_minus_list() {
-	return build_generic_list("subtracted");
-}
-
-static lexeme build_times_list() {
-	return build_generic_list("multiplied");
-}
-
-static lexeme build_div_list() {
-	return build_generic_list("divided");
-}
-
-static lexeme build_equal_list() {
-	return build_generic_list("listed");
-}
-
-static lexeme build_if_list() {
-	lexeme newParamList;
-	lexeme currentParamList;
-	lexeme dot;
-	lexeme newParam;
-	pair p;
-
-	newParamList = lexeme_make(PAIR);
-	dot = lexeme_make(DOT);
-	newParam = lexeme_make(ID);
-	p = pair_make(dot, lexeme_make(NIL));
-	lexeme_set_data(newParamList, p);
-
-	p = pair_make(newParam, lexeme_make(NIL));
-	lexeme_set_data(dot, p);
-	lexeme_set_data(newParam, "ifFalse");
-
-	currentParamList = newParamList;
-
-	newParamList = lexeme_make(PAIR);
-	dot = lexeme_make(DOT);
-	newParam = lexeme_make(ID);
-	p = pair_make(dot, currentParamList);
-	lexeme_set_data(newParamList,  p);
-	
-	p = pair_make(newParam, lexeme_make(NIL));
-	lexeme_set_data(dot, p);
-	lexeme_set_data(newParam, "ifTrue");
-
-	currentParamList = newParamList;
-
-	newParamList = lexeme_make(PAIR);
-	newParam = lexeme_make(ID);
-	p = pair_make(newParam, currentParamList);
-	lexeme_set_data(newParamList, p);
-	lexeme_set_data(newParam, "condition");
-
-	return newParamList;
-}
-
-static lexeme build_less_list() {
-	lexeme newParamList;
-	lexeme currentParamList;
-	lexeme newParam;
-	pair p;
-
-	newParamList = lexeme_make(PAIR);
-	newParam = lexeme_make(ID);
-	p = pair_make(newParam, lexeme_make(NIL));
-	lexeme_set_data(newParamList, p);
-	lexeme_set_data(newParam, "x1");
-	
-	currentParamList = newParamList;
-
-	newParamList = lexeme_make(PAIR);
-	newParam = lexeme_make(ID);
-	p = pair_make(newParam, currentParamList);
-	lexeme_set_data(newParamList, p);
-	lexeme_set_data(newParam, "x2");
-
-	return newParamList;
-}
-
-static lexeme build_greater_list() {
-	lexeme newParamList;
-	lexeme currentParamList;
-	lexeme newParam;
-	pair p;
-
-	newParamList = lexeme_make(PAIR);
-	newParam = lexeme_make(ID);
-	p = pair_make(newParam, lexeme_make(NIL));
-	lexeme_set_data(newParamList, p);
-	lexeme_set_data(newParam, "x1");
-	
-	currentParamList = newParamList;
-
-	newParamList = lexeme_make(PAIR);
-	newParam = lexeme_make(ID);
-	p = pair_make(newParam, currentParamList);
-	lexeme_set_data(newParamList, p);
-	lexeme_set_data(newParam, "x2");
-
-	return newParamList;
-}
-
-static lexeme build_list_list() {
-	return build_generic_list("listed");
-}
-
-static lexeme build_head_list() {
-	lexeme paramList = lexeme_make(PAIR);
-	lexeme param = lexeme_make(ID);
-	pair p = pair_make(param, lexeme_make(NIL));
-	lexeme_set_data(paramList, p);
-	lexeme_set_data(param, "list");
-	return paramList;
-}
-
-static lexeme build_tail_list() {
-	lexeme paramList = lexeme_make(PAIR);
-	lexeme param = lexeme_make(ID);
-	pair p = pair_make(param, lexeme_make(NIL));
-	lexeme_set_data(paramList, p);
-	lexeme_set_data(param, "list");
-	return paramList;
-}
-
-static lexeme build_nil_list() {
-	lexeme paramList = lexeme_make(PAIR);
-	lexeme param = lexeme_make(ID);
-	pair p = pair_make(param, lexeme_make(NIL));
-	lexeme_set_data(paramList, p);
-	lexeme_set_data(param, "tested");
-	return paramList;
-}
-
-static lexeme build_apply_list() {
-	lexeme retParamList = lexeme_make(PAIR);
-	lexeme rightParamList = lexeme_make(PAIR);
-	lexeme firstParam = lexeme_make(ID);
-	lexeme secondParam = lexeme_make(ID);
-	pair p = pair_make(firstParam, rightParamList);
-	lexeme_set_data(retParamList, p);
-	p = pair_make(secondParam, lexeme_make(NIL));
-	lexeme_set_data(rightParamList, p);
-	lexeme_set_data(firstParam, "operator");
-	lexeme_set_data(secondParam, "operands");
-	return retParamList;
-}
-
-static lexeme build_type_list() {
-	lexeme paramList = lexeme_make(PAIR);
-	lexeme param = lexeme_make(ID);
-	pair p = pair_make(param, lexeme_make(NIL));
-	lexeme_set_data(paramList, p);
-	lexeme_set_data(param, "arg");
-	return paramList;
-}
-
-static lexeme build_cons_list() {
-	lexeme retParamList = lexeme_make(PAIR);
-	lexeme rightParamList = lexeme_make(PAIR);
-	lexeme firstParam = lexeme_make(ID);
-	lexeme secondParam = lexeme_make(ID);
-	pair p = pair_make(firstParam, rightParamList);
-	lexeme_set_data(retParamList, p);
-	p = pair_make(secondParam, lexeme_make(NIL));
-	lexeme_set_data(rightParamList, p);
-	lexeme_set_data(firstParam, "head");
-	lexeme_set_data(secondParam, "tail");
-	return retParamList;
-}
-
-static lexeme build_append_list() {
-	lexeme retParamList = lexeme_make(PAIR);
-	lexeme rightParamList = lexeme_make(PAIR);
-	lexeme firstParam = lexeme_make(ID);
-	lexeme secondParam = lexeme_make(ID);
-	pair p = pair_make(firstParam, rightParamList);
-	lexeme_set_data(retParamList, p);
-	p = pair_make(secondParam, lexeme_make(NIL));
-	lexeme_set_data(rightParamList, p);
-	lexeme_set_data(firstParam, "first");
-	lexeme_set_data(secondParam, "second");
-	return retParamList;
-}
-
-static lexeme build_sref_list() {
-	lexeme retParamList = lexeme_make(PAIR);
-	lexeme rightParamList = lexeme_make(PAIR);
-	lexeme firstParam = lexeme_make(ID);
-	lexeme secondParam = lexeme_make(ID);
-	pair p = pair_make(firstParam, rightParamList);
-	lexeme_set_data(retParamList, p);
-	p = pair_make(secondParam, lexeme_make(NIL));
-	lexeme_set_data(rightParamList, p);
-	lexeme_set_data(firstParam, "index");
-	lexeme_set_data(secondParam, "str");
-	return retParamList;
-}
-
-static lexeme build_generic_list(char * name) {
-	lexeme head = lexeme_make(PAIR);
-	lexeme amp = lexeme_make(AMP);
-	lexeme id = lexeme_make(ID);
-	pair p = pair_make(amp, lexeme_make(NIL));
-	lexeme_set_data(head, p);
-	p = pair_make(id, lexeme_make(NIL));
-	lexeme_set_data(amp, p);
-	lexeme_set_data(id, name);
-	return head;
-}
-
 
 static lexeme create_call_return(lexeme evaled) {
 	lexeme call = lexeme_make(CALL);
